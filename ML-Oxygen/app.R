@@ -141,7 +141,7 @@ body <- dashboardBody(
                         )
                     )
                     ,tableOutput("input_file") ### OUTPUT ###
-                    ,br()
+              
                 )
             )
             
@@ -229,7 +229,7 @@ body <- dashboardBody(
             
             
             ,fluidRow(
-                tabBox(height = 600,
+                tabBox(
                     title = "Numerical"
                     ,width = 6
                     ,tabPanel(
@@ -260,7 +260,7 @@ body <- dashboardBody(
                         ) %>% withSpinner()
                     )
                 )
-                ,tabBox(height = 700,
+                ,tabBox(
                     title = "Categorical"
                     ,width = 6
                     ,tabPanel(
@@ -472,7 +472,7 @@ server <- function(input, output, session) {
     output$report <- downloadHandler(dd <- filedata(), function(theFile){                            ### 4. Output: report ###
         
         showModal(modalDialog("Creating Report" ,fade = TRUE, size = "l", footer = "1-3 mins"))
-        create_report(dd, y = input$target)
+        create_report(dd)
         removeModal()
         
     })
