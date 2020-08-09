@@ -70,33 +70,3 @@ plot_bar_all <- function(data, group, with = NULL, maxcat = 50, order_bar = TRUE
   )
 }
 
-target_encode <- function(target_encoding, data, factor = FALSE) {
-  
-  data <- as.data.frame(data)
-  
-  if (factor == TRUE) {
-    
-    data[, names(target_encoding)] <- lapply(data[, names(target_encoding)], factor)
-    
-  }
-  
-  for (i in 1:length(target_encoding)) {
-    
-    for (j in 1:length(target_encoding[[i]])) {
-      
-      levels(data[,which(names(data) == names(target_encoding)[i])])[levels(data[,which(names(data) == names(target_encoding)[i])])==target_encoding[[i]][[j,1]]] = target_encoding[[i]][[j,2]]
-      
-    }
-  }
-  
-  data[, names(target_encoding)] = apply(data[, names(target_encoding)], 2, function(x) as.numeric(as.character(x)))
-  data[, names(target_encoding)] = apply(data[, names(target_encoding)], 2, function(x) ifelse(is.na(x), mean(x, na.rm=TRUE), x))
-  
-  data
-  
-}
-
-cat_names <- function(data) {
-  numeric_names <- names(which(sapply(data, class) == "factor" | sapply(data, class) == "character" | sapply(data, class) == "ordered"))
-  numeric_names
-}

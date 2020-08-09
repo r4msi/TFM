@@ -26,7 +26,7 @@ source("./helpers.R")
 header <- dashboardHeaderPlus(
     
     title = tagList(
-        span(class = "logo-lg", "ML Oxygen 0.0.1")
+        span(class = "logo-lg", "ML Oxygen 0.0.3")
         ,img(src = "https://image.flaticon.com/icons/svg/204/204074.svg")
     )
     ,enable_rightsidebar = T
@@ -250,15 +250,15 @@ body <- dashboardBody(
                             )
                         ) %>% withSpinner()
                     )
-                    ,tabPanel(
-                        "Scatter-Plots"
-                        ,jqui_resizable(
-                            plotOutput(
-                                outputId = "scatterplots"                         ### 9. OUTPUT: scatterplots ###
-                                ,height = 600
-                            )
-                        ) %>% withSpinner()
-                    )
+                    # ,tabPanel(
+                    #     "Scatter-Plots"
+                    #     ,jqui_resizable(
+                    #         plotOutput(
+                    #             outputId = "scatterplots"                         ### 9. OUTPUT: scatterplots ###
+                    #             ,height = 600
+                    #         )
+                    #     ) 
+                    # )
                 )
                 ,tabBox(
                     title = "Categorical"
@@ -288,7 +288,7 @@ body <- dashboardBody(
                                 outputId = "cardinality"                           ### 12. OUTPUT: cardinality ###
                                 ,height = 600
                             )
-                        )
+                        ) %>% withSpinner()
                     )
                 )
             )
@@ -354,13 +354,14 @@ server <- function(input, output, session) {
         })
         char_exclude <- names(which(unique_char==TRUE))
         id <- grepl("id|ID|Id|iD",names(df)) # It does not make sense to add ID as target
-        print(id)
         if (sum(id) > 0) {
             char_exclude <- c(char_exclude, names(df)[id])
         }
         var = select(df,-all_of(char_exclude)) %>% names()
         updateSelectInput(session,"target", choices =  var) ### 3. INPUT: target ###
     })
+    
+    
     
     
     output$rows <- renderValueBox({
@@ -481,7 +482,7 @@ server <- function(input, output, session) {
         
         df <- filedata()
         if (is.null(df)) {
-            return(NULL)
+            return(readRDS("rds/na.RDS"))
         }
         
         plot_missing(
@@ -497,7 +498,7 @@ server <- function(input, output, session) {
         
         df <- filedata()
         if (is.null(df)) { 
-            return(NULL) 
+            return(readRDS("rds/target_plotly.RDS"))
         }
         
         if (nrow(unique(select(df,input$target)))<=10) {
@@ -524,7 +525,7 @@ server <- function(input, output, session) {
         
         df <- filedata()
         if (is.null(df)) {
-            return(NULL)
+            return(readRDS("rds/hist.RDS"))
         }
         
         plot_histogram(
@@ -541,7 +542,7 @@ server <- function(input, output, session) {
         
         df <- filedata()
         if (is.null(df)) {
-            return(NULL)
+            return(readRDS("rds/boxplot.RDS"))
         }
             
         plot_boxplot(
@@ -556,38 +557,48 @@ server <- function(input, output, session) {
         
     })
     
-    output$scatterplots <- renderPlot({                                                                ### 9. OUTPUT: Scatterplots ###
-        
-        df <- filedata()
-        if (is.null(df)) {
-            return(NULL)
-        }
-        
-        plot_scatterplot(
-            df, 
-            geom_point_args = list("color" = sample(colors,size=1), "alpha"=0.8),
-            #ggtheme = theme_plex,
-            title = "Bivariate Scatterplot",
-            by = input$target,
-            nrow = ncol(Filter(is.numeric, df))
-            
-        ) 
-        
-    })
+    # output$scatterplots <- renderPlot({                                                                ### 9. OUTPUT: Scatterplots ###
+    #     
+    #     df <- filedata()
+    #     if (is.null(df)) {
+    #         return(NULL)
+    #     }
+    #     
+    #     plot_scatterplot(
+    #         df, 
+    #         geom_point_args = list("color" = sample(colors,size=1), "alpha"=0.8),
+    #         # sampled_rows = 10000,
+    #         #ggtheme = theme_plex,
+    #         title = "Bivariate Scatterplot",
+    #         by = input$target,
+    #         nrow = ncol(Filter(is.numeric, df))
+    #         
+    #     ) 
+    #     
+    # })
     
     output$bars <- renderPlot({                                                                ### 10. OUTPUT: bars ###
         
         df <- filedata()
         if (is.null(df)) {
-            return(NULL)
+            return(readRDS("rds/barplot.RDS"))
         }
+        
+        unique_vars <- sapply(df,function(x){
+            
+            length(unique(x))
+            
+        })
+        
+        cardinality <- which(unique_vars <= 15)
         
         plot_bar(
             data = df,
             binary_as_factor = TRUE,
+            maxcat = 15,
             #ggtheme = theme_plex,
             title = "Bar Plot Univariate",
-            nrow = ncol(Filter(is.character, df))
+            nrow = ncol(df[,cardinality])
         )
         
         
@@ -598,10 +609,18 @@ server <- function(input, output, session) {
         
         df <- filedata()
         if (is.null(df)) {
-            return(NULL)
+            return(readRDS("rds/barplot_bi.RDS.RDS"))
         }
         
-        if (nrow(unique(select(df,input$target)))<=10) {
+        if (nrow(unique(select(df,input$target)))<=15) {
+            
+            unique_vars <- sapply(df,function(x){
+                
+                length(unique(x))
+                
+            })
+            
+            cardinality <- which(unique_vars <= 15)
             
             df %>% 
                 mutate(Target = factor(df[,input$target])) %>% 
@@ -609,8 +628,9 @@ server <- function(input, output, session) {
                     data = .,
                     group = "Target",
                     binary_as_factor = T,
+                    maxcat = 15,
                     title = "Bar Plot Bivariate",
-                    nrow = ncol(Filter(is.character, df)),
+                    nrow = ncol(df[,cardinality]),
                     ncol = 3
                 )
             
@@ -623,7 +643,7 @@ server <- function(input, output, session) {
         
         df <- filedata()
         if (is.null(df)) {
-            return(NULL)
+            return(readRDS("rds/cardinality.RDS"))
         }
         
         x <- inspect_cat(df)
@@ -635,7 +655,7 @@ server <- function(input, output, session) {
         
         df <- filedata()
         if (is.null(df)) {
-            return(NULL)
+            return(readRDS("rds/corr.RDS"))
         }
         
         plot_correlation(
