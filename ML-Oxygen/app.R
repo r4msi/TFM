@@ -1,32 +1,15 @@
-library(shiny)
-library(shinydashboard)
-library(shinydashboardPlus)
-library(shinycssloaders)
-library(data.table)
-library(skimr)
-library(DataExplorer)
-library(ggplot2)
-library(plotly)
-library(lubridate)
-library(ggthemes)
-library(dplyr)
-library(purrr)
-library(shinyjqui)
-library(inspectdf)
-
-# theme_plex <- theme_set(ggthemes::theme_fivethirtyeight() + theme(plot.title = element_text(hjust = 0.5)))
-
-colors <- c("dodgerblue", "coral", "salmon", "#00AFBB", "#FFDB6D", "44015FF", "55C667FF", "74D055FF")
 source("./helpers.R")
+library(doParallel)
 
 ##############
 ### HEADER ###
 ##############
 
+
 header <- dashboardHeaderPlus(
     
     title = tagList(
-        span(class = "logo-lg", "ML Oxygen 0.0.3")
+        span(class = "logo-lg", "ML Oxygen 0.1.0")
         ,img(src = "https://image.flaticon.com/icons/svg/204/204074.svg")
     )
     ,enable_rightsidebar = T
@@ -52,7 +35,7 @@ sidebar <- dashboardSidebar(
         )
         ,menuItem(
             text = "ML"
-            ,tabName = "Machine Learning"
+            ,tabName = "ml"
             ,icon = icon("rocket")
         )
         
@@ -125,8 +108,9 @@ body <- dashboardBody(
                     )
                 )
                 ,boxPlus(
-                    title = "Statistics"
+                    title = ""
                     ,status = "success"
+                    ,solidHeader = F
                     ,width = 10
                     ,closable = F
                     ,enable_label = T
@@ -140,7 +124,11 @@ body <- dashboardBody(
                             ,choices = c("Numeric", "Character", "Dates")
                         )
                     )
-                    ,tableOutput("input_file") ### OUTPUT ###
+                    ,column(
+                        width = 12
+                        ,align = "center"
+                        ,tableOutput("input_file") ### OUTPUT ###
+                    )
               
                 )
             )
@@ -307,6 +295,154 @@ body <- dashboardBody(
             )
         )
         
+        ################
+        ### PAGE III ###
+        ################
+        
+        ,tabItem(
+            
+            tabName = "ml"
+            
+            ,fluidRow(
+                column(
+                    width = 4
+                    ,boxPlus(
+                        title = "Strategy"
+                        ,closable = F
+                        ,status = "success"
+                        ,width = 12
+                        ,uiOutput(
+                            outputId = "value_target"
+                        )
+                        ,boxPlus(
+                            title = "Auto-Bayesian-Processing"
+                            ,closable = F
+                            ,solidHeader = TRUE
+                            ,status = "warning"
+                            ,width = 12
+                            ,collapsible = T
+                            ,collapsed = F
+                            ,column(
+                                width = 12
+                                ,align = "center"
+                                ,radioButtons(
+                                    inputId = "rb"
+                                    ,label = "Treatment"
+                                    ,choices = c("One-Sample", "Cross-Validation-Bayes")
+                                )
+                            )
+                        )
+                        ,boxPlus(
+                            title = "Validation"
+                            ,closable = F
+                            ,solidHeader = TRUE
+                            ,status = "primary"
+                            ,width = 12
+                            ,collapsible = T
+                            ,collapsed = T
+                            ,column(
+                                width = 12
+                                ,align = "center"
+                                ,sliderInput(                                                     ### 14. INPUT: split ###
+                                    inputId = "split"
+                                    ,min = .6
+                                    ,max = .9
+                                    ,value = .8
+                                    ,step = .05
+                                    ,label = "Train-Test Split"
+                                )
+                                ,sliderInput(                                                       ### 15. INPUT: cv ###
+                                    inputId = "cv"
+                                    ,label = "Cross-Validation"
+                                    ,min = 3
+                                    ,max = 10
+                                    ,step = 1
+                                    ,value = 3
+                                )
+                                ,actionButton(
+                                    inputId = "process_train"                                        ### 16. INPUT: process_train ###
+                                    ,label = "Porcessing"
+                                )
+                            )
+                        )
+                        ,boxPlus(
+                            title = "Upload Test"
+                            ,closable = F
+                            ,solidHeader = TRUE
+                            ,status = "info"
+                            ,width = 12
+                            ,collapsible = T
+                            ,collapsed = T
+                            ,column(
+                                width = 12
+                                ,align = "center"
+                                ,fileInput(
+                                    inputId = "file_test"                                                ### 17. INPUT: file_test ###
+                                    ,"Test"
+                                )
+                            )
+                            
+                        )
+                        ,boxPlus(
+                            title = "Predict"
+                            ,closable = F
+                            ,solidHeader = TRUE
+                            ,status = "success"
+                            ,width = 12
+                            ,collapsible = T
+                            ,collapsed = T
+                            ,column(
+                                width = 12
+                                ,align = "center"
+                                ,selectInput(                                                        ### 18. INPUT: select_model ###
+                                    inputId = "select_model"
+                                    ,label = "Select Model"
+                                    ,choices = c(
+                                        "XGB", "Lasso", "Ridge", "ElasticNet",
+                                        "LinearModel", "RandomForest", "KNN"
+                                    )
+                                
+                                )
+                                ,actionButton(
+                                    inputId = "predict"
+                                    ,label = "Predict"
+                                )
+                                ,downloadButton(
+                                    outputId = "download_predict"                                           ### 19. INPUT: download_predict ###
+                                    ,label = "Download Predictions"
+                                    ,style = "color: white; background-color: #222D32"
+                                )
+                            )
+                            
+                        )
+                        
+                    )
+                )
+                ,column(
+                    width = 8
+                    ,boxPlus(
+                        title = "MODEL RESULTS"
+                        ,width = 12
+                        ,solidHeader = T
+                        ,status = "primary"
+                        ,plotlyOutput(
+                            outputId = "cv_model_results"                                              ### 20. OUTPUT: cv_model_results ###
+                        )
+                    )
+                    ,boxPlus(
+                        title = "TEST RESULTS"
+                        ,width = 12
+                        ,solidHeader = T
+                        ,status = "success"
+                        ,plotlyOutput(
+                            outputId = "test_models_results"                                                  ### 21. OUTPUT: test_models_results ###
+                        )
+                    )
+                )
+            )
+        
+        )
+        
     )
     
 )
@@ -342,13 +478,22 @@ server <- function(input, output, session) {
         fread(infile$datapath, integer64 = "numeric",data.table = F) # datapath es lo que devuelve input$file
     })
     
+    filetest <- reactive({
+        infile <- input$file_test
+        # User has not uploaded a file yet
+        if (is.null(infile)){
+            return(NULL)
+        }
+        fread(infile$datapath, integer64 = "numeric",data.table = F) 
+    })
     
-    # TAGET + SELECTING OPTIMAL TARGETS
+    # TARGET + SELECTING OPTIMAL TARGETS
     observe({
         df <- filedata()
         if (is.null(df)){
             return(NULL)
         }
+        
         unique_char <- sapply(Filter(is.character, df),function(x){ # Not advisable to plot high cardinality variables
             length(unique(x))>=15
         })
@@ -357,12 +502,139 @@ server <- function(input, output, session) {
         if (sum(id) > 0) {
             char_exclude <- c(char_exclude, names(df)[id])
         }
+        
+        char_exclude <- c(char_exclude, names(df)[sapply(df, function(x){sum(is.na(x))})>0]) # Variables with NA cannot be targets
+        
+            
         var = select(df,-all_of(char_exclude)) %>% names()
         updateSelectInput(session,"target", choices =  var) ### 3. INPUT: target ###
     })
     
     
     
+    validation <- eventReactive(input$process_train,{
+
+        showModal(modalDialog("Fitting Models" ,fade = TRUE, size = "l", footer = "1-10 mins"))
+        df <- filedata()
+        if (is.null(df)) {
+            return(NULL)
+        }
+        
+        if (length(unique(df[,input$target]))<=5) {
+            
+            df[,input$target] <- factor(df[,input$target])
+            
+            list <- names(select(df,-input$target)) 
+            treatments <- vtreat::designTreatmentsC(df, varlist = list, outcomename = input$target, outcometarget = df[,input$target][1])
+            df_treat <- vtreat::prepare(treatments, df)
+            df_treat_fs <- df_treat[,treatments$scoreFrame$recommended] # Variables recomendadas.
+            df_treat_fs$Target <- df_treat[,input$target]
+            
+            df_treat_fs$Target <- make.names(df_treat_fs$Target)
+            
+        } else {
+            list <- names(select(df,-input$target)) 
+            treatments <- vtreat::designTreatmentsN(df, varlist = list, outcomename = input$target)
+            df_treat <- vtreat::prepare(treatments, df)
+            df_treat_fs <- df_treat[,treatments$scoreFrame$recommended] # Variables recomendadas.
+            df_treat_fs$Target <- df_treat[,input$target]
+        }
+        
+        inTrain <- createDataPartition(y = df_treat_fs$Target, p = input$split, list = FALSE)
+        training <- df_treat_fs[ inTrain,]
+        testing <- df_treat_fs[-inTrain,]
+        
+        
+        trControl <- trainControl(
+            method = "cv",
+            savePredictions = "final",
+            index = createFolds(training$Target, k =input$cv), 
+            allowParallel = TRUE,
+            verboseIter = FALSE
+        )
+        
+        xgbTreeGrid <- expand.grid(
+            nrounds = 150,
+            max_depth = 8,
+            eta = 0.02,
+            gamma = 0.05,
+            colsample_bytree = c(.3),
+            subsample = 0.7,
+            min_child_weight = 5)
+        lassoGrid <- expand.grid(
+            alpha =1,
+            lambda = .1
+        )
+        ridgeGrid <- expand.grid(
+            alpha =0,
+            lambda = .1
+        )
+        elasticNetGrid <- expand.grid(
+            alpha = .5
+            ,lambda = .1
+        )
+        linearGrid <- expand.grid(
+            alpha = 0,
+            lambda = 0
+        )
+        if (length(unique(df[,input$target]))<=15) {
+            rfGrid <- expand.grid(
+                mtry = round(sqrt(ncol(training))),
+                splitrule = "gini",
+                min.node.size = 1)
+        } else {
+            rfGrid <- expand.grid(
+                mtry = round(sqrt(ncol(training))),
+                splitrule = "variance",
+                min.node.size = 5)
+        }
+        knnGrid <- expand.grid(
+            k = 3
+        )
+        
+        if (length(unique(df[,input$target]))==2 | length(unique(df[,input$target])) > 15 ) {
+        
+            modelList <- caretList(
+                Target ~ ., data = training,
+                trControl = trControl,
+                tuneList = list(
+                    XGB    = caretModelSpec(method = "xgbTree", tuneGrid = xgbTreeGrid),
+                    Lasso = caretModelSpec(method = "glmnet", tuneGrid = lassoGrid),
+                    Ridge = caretModelSpec(method = "glmnet", tuneGrid = ridgeGrid),
+                    ElasticNet = caretModelSpec(method = "glmnet", tuneGrid = elasticNetGrid),
+                    LinearModel = caretModelSpec(method = "glmnet", tuneGrid = linearGrid),
+                    RandomForest     = caretModelSpec(method = "ranger", tuneGrid = rfGrid),
+                    KNN   = caretModelSpec(method = "knn", tuneGrid = knnGrid)
+                )
+            )
+        
+        }
+        
+        else {
+            modelList <- caretList(
+                Target ~ ., data = training,
+                trControl = trControl,
+                tuneList = list(
+                    XGB    = caretModelSpec(method = "xgbTree", tuneGrid = xgbTreeGrid),
+                    RandomForest     = caretModelSpec(method = "ranger", tuneGrid = rfGrid),
+                    KNN   = caretModelSpec(method = "knn", tuneGrid = knnGrid)
+                )
+            )
+        }
+        
+        removeModal()
+        #doParallel::stopImplicitCluster()
+        return(list(
+            treatments = treatments,
+            modelList = modelList,
+            testing = testing
+        ))
+
+    })
+    
+                                #########################################################################################################################################################
+                                ######################################################################## OUTPUTS ########################################################################
+                                #########################################################################################################################################################
     
     output$rows <- renderValueBox({
         
@@ -446,7 +718,8 @@ server <- function(input, output, session) {
         
         df <- filedata()
         if (is.null(df)) {
-            return(data.frame(Message = "Browse your data!"))
+            df <- iris
+            df$Species <- as.character(df$Species)
         }
         
         if (input$variable_class=="Numeric")
@@ -463,7 +736,7 @@ server <- function(input, output, session) {
         
         df <- filedata()
         if (is.null(df)) {
-            return(NULL)
+            df <- iris
         }
         
         head(df,25)
@@ -666,8 +939,121 @@ server <- function(input, output, session) {
         
     })
     
+    output$value_target <- renderUI({
+        
+        df <- filedata()
+        if (is.null(df)) {
+            return(NULL)
+        }
+        
+        a <- ""
+        
+        if (length(unique(df[,input$target]))<=5) {
+            
+            a <- "Classification"
+            
+        } else {a <- "Regression"}
+        
+        info_card(
+            title="Target Problem"
+            ,value = a
+            ,sub_value = NULL
+            ,sub_icon = NULL
+            ,bg_color  = ifelse(a=="Classification", "info", "warning")
+            ,sub_text_color = NULL
+            ,main_icon = "ruler"
+        )
+        
+    })
+
     
+    output$cv_model_results <- renderPlotly({                                                                 ### 18. OUTPUT: cv_model_results ###
+        
+        modelList <- validation()$modelList
+        
+        
+        a <- modelList %>% 
+            resamples() %>% 
+            data.frame() %>% 
+            pivot_longer(XGB:KNN) %>% 
+            ggplot(., aes(reorder(name,value), value)) + 
+            geom_boxplot(color="dodgerblue") + 
+            coord_flip() + 
+            labs(title = "CV Results", y=modelList$XGB$metric, x=NULL) 
+        
+        ggplotly(a)
+        
+    })
     
+    output$test_models_results <- renderPlotly({                                                                 ### 19. OUTPUT: test_models_results ###
+        
+        modelList <- validation()$modelList
+        testing <- validation()$testing
+        
+        if (length(unique(testing$Target))<=5) {
+        
+            metric_results <- sapply(modelList, function(x){
+                y_pred <- predict(x,testing)
+                results <- postResample(y_pred, testing$Target %>% factor)
+            }) %>% data.frame() %>% 
+                pivot_longer(XGB:KNN) %>% 
+                mutate(Metric="Accuracy")
+            
+            metric_results[8:14,]$Metric <- "Kappa"
+        
+        } else {
+            metric_results <- sapply(modelList, function(x){
+                y_pred <- predict(x,testing)
+                results <- postResample(y_pred, testing$Target)
+            }) %>% data.frame() %>% 
+                pivot_longer(XGB:KNN) %>% 
+                mutate(Metric="RMSE")
+            
+            metric_results <- metric_results[1:7,]
+          
+        }
+        
+        b <- metric_results %>% 
+            ggplot(.,aes(reorder(name,value),value)) + 
+                geom_col(fill=sample(colors,1)) + 
+                facet_wrap(~Metric) + 
+                coord_flip() +labs(y=NULL,x=NULL)
+        
+        ggplotly(b)
+        
+    })
+    
+    pred <- eventReactive(input$predict,{
+        
+        treatments <- validation()$treatments
+      
+        df <- filedata()
+        modelList <- validation()$modelList
+    
+        
+        if (is.null(treatments) | is.null(test)) {return(NULL)}
+        
+        
+        showModal(modalDialog("Predicting" ,fade = TRUE, size = "l", footer = "Less than 30"))
+        
+        Sys.sleep(5)
+        test_treated <- prepare(treatments, test)
+        pred <- predict(modelList$RandomForest, test_treated)
+        
+        removeModal()
+        
+        return(list(pred=pred))
+    })
+    
+    output$download_predict <- downloadHandler(
+        filename = function() {
+            paste("prediction", "csv", sep=".")
+        },
+        content = function(files) {
+            write.csv(pred()$pred, files, row.names = F)
+        }
+    )
+
     
 }
 

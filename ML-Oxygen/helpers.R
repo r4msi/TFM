@@ -1,4 +1,40 @@
-colors <- c("dodgerblue", "coral", "salmon", "#00AFBB", "#FFDB6D", "44015FF", "55C667FF", "74D055FF")
+library(shiny)
+library(shinydashboard)
+library(shinydashboardPlus)
+library(shinycssloaders)
+library(data.table)
+library(skimr)
+library(DataExplorer)
+library(ggplot2)
+library(plotly)
+library(lubridate)
+library(ggthemes)
+library(dplyr)
+library(tidyr)
+library(purrr)
+library(shinyjqui)
+library(inspectdf)
+library(caret)
+library(caretEnsemble)
+library(vtreat)
+library(stringr)
+
+withConsoleRedirect <- function(containerId, expr) {
+  # Change type="output" to type="message" to catch stderr
+  # (messages, warnings, and errors) instead of stdout.
+  txt <- capture.output(results <- expr, type = "output")
+  if (length(txt) > 0) {
+    insertUI(paste0("#", containerId), where = "beforeEnd",
+             ui = paste0(txt, "\n", collapse = "")
+    )
+  }
+  results
+}
+
+
+# theme_plex <- theme_set(ggthemes::theme_fivethirtyeight() + theme(plot.title = element_text(hjust = 0.5)))
+
+colors <- c("dodgerblue", "coral", "salmon", "yellow")
 
 plot_bar_all <- function(data, group, with = NULL, maxcat = 50, order_bar = TRUE, binary_as_factor = TRUE, title = NULL, ggtheme = theme_gray(), theme_config = list(), nrow = 4L, ncol = 4L, parallel = FALSE, position=FALSE) {
   require(DataExplorer)
@@ -70,3 +106,25 @@ plot_bar_all <- function(data, group, with = NULL, maxcat = 50, order_bar = TRUE
   )
 }
 
+info_card <- function(title, value, sub_value = NULL,
+                      main_icon = "chart-line", sub_icon = "arrow-up",
+                      bg_color = "default", text_color = "default", 
+                      sub_text_color = "success") {
+  
+  div(
+    class = "panel panel-default",
+    style = "padding: 0px;",
+    div(
+      class = str_glue("panel-body bg-{bg_color} text-{text_color}"),
+      p(class = "pull-right", icon(class = "fa-4x", main_icon)),
+      h4(title),
+      h5(value),
+      p(
+        class = str_glue("text-{sub_text_color}"),
+        icon(sub_icon),
+        tags$small(sub_value)
+      )
+    )
+  )
+  
+}
