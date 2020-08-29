@@ -5,6 +5,7 @@ library(shinycssloaders)
 library(data.table)
 library(skimr)
 library(DataExplorer)
+library(ada)
 library(ggplot2)
 library(plotly)
 library(lubridate)
@@ -18,6 +19,12 @@ library(caret)
 library(caretEnsemble)
 library(vtreat)
 library(stringr)
+library(ranger)
+library(xgboost)
+library(glmnet)
+library(e1071 )
+library(shinyWidgets)
+library(recipes)
 
 withConsoleRedirect <- function(containerId, expr) {
   # Change type="output" to type="message" to catch stderr
@@ -32,7 +39,12 @@ withConsoleRedirect <- function(containerId, expr) {
 }
 
 
-# theme_plex <- theme_set(ggthemes::theme_fivethirtyeight() + theme(plot.title = element_text(hjust = 0.5)))
+Mode <- function(x) {
+  ux <- unique(na.omit(x))
+  ux[which.max(tabulate(match(x, ux)))]
+}
+
+theme_plex <- theme_set(theme_minimal() + theme(plot.title = element_text(hjust = 0.4)))
 
 colors <- c("dodgerblue", "coral", "salmon", "yellow")
 
@@ -126,5 +138,245 @@ info_card <- function(title, value, sub_value = NULL,
       )
     )
   )
+  
+}
+
+
+
+
+missVtreatRanger <- function(train, val, test=NULL, originalTarget) {
+  
+  tr <- train %>% 
+    select(-originalTarget)
+  
+  vl <- val %>% 
+    select(-originalTarget)
+  
+  # UNION
+  if (is.null(test)) {
+    data <- rbind(
+      tr,
+      vl
+    )
+  } else {
+    data <- rbind(
+      tr,
+      vl,
+      test
+    )
+  }
+  
+  # NZV
+  
+  nzv <- nearZeroVar(data,freqCut = 90/10, uniqueCut = 10)
+  
+  if (length(nzv)>0) {
+    data <- data[,-nzv]
+  }
+  
+  isna <- sapply(data, function(x, data) {
+    sum(is.na(x))/nrow(data)
+  },data)
+  
+  l_na <- which(isna>.3) %>% length()
+  
+  if (l_na>0) {
+    
+    remove <- which(isna>.3) %>% names()
+    
+    data <- select(data, -all_of(remove))
+    
+  }
+  
+  unique_char <- sapply(Filter(is.character, data),function(x){ # Not advisable to plot high cardinality variables
+    length(unique(x))>=10
+  })
+  char_exclude <- names(which(unique_char==TRUE))
+  
+  select(data,-all_of(char_exclude))
+  
+  data <- select(data,-all_of(char_exclude))
+  
+  
+  isnaVars <- sapply(data, function(x) {
+    any(is.na(x))
+  })
+  
+  isnaVars <- data[,isnaVars] %>% names
+  
+  
+  data_impute <- data 
+  
+  vars <- length(isnaVars)
+  
+  
+  for (i in 1:vars) {
+    
+    missTarget <- isnaVars[i] 
+    
+    missTarget %>% print()
+    
+    targetMissLevels <- data_impute[ , missTarget] %>% unique() %>% length()
+    
+    
+    if (targetMissLevels < 10) {
+      
+      data_impute[ , missTarget] <- ifelse(
+        is.na(data_impute[, missTarget]), 
+        Mode(data_impute[, missTarget]),
+        data_impute[, missTarget]
+      )
+      
+      listMiss <- select(data_impute, -missTarget) %>% names()
+      
+      set.seed(123)
+      treatments <- vtreat::mkCrossFrameCExperiment(
+        data_impute,
+        varlist = listMiss,
+        outcomename = missTarget, 
+        outcometarget = data[ ,missTarget][[1]],
+        verbose = T
+      )
+      
+      df_treat <- treatments$crossFrame
+      df_treat_fs <- select(df_treat,-missTarget)[,treatments$treatments$scoreFrame$recommended]
+      df_treat_fs$Target <- as.factor(df_treat[,missTarget])
+      
+      
+    } else {
+      
+      
+      data_impute[ , missTarget] <- ifelse(
+        is.na(data_impute[, missTarget]), 
+        median(data_impute[, missTarget],na.rm = T),
+        data_impute[, missTarget]
+      )
+      
+      
+      listMiss <- select(data_impute, -missTarget) %>% names()
+      
+      set.seed(123)
+      treatments <- vtreat::mkCrossFrameNExperiment(
+        data_impute,
+        varlist = listMiss,
+        outcomename = missTarget,
+        verbose = F
+      )
+      
+      df_treat <- treatments$crossFrame
+      df_treat_fs <- select(df_treat,-missTarget)[,treatments$treatments$scoreFrame$recommended]
+      df_treat_fs$Target <- df_treat[,missTarget]
+      
+      
+    }
+    
+    for (i in 1:nrow(data)) {
+      if (is.na(data[i, missTarget])) {
+        df_treat_fs[i, "Target"] = NA
+      }
+    }
+    
+    # if (targetMissLevels == 2) {
+    #   f <- "binomial"
+    # } else if (targetMissLevels >2 & targetMissLevels <10){
+    #   f <- "multinomial"
+    # } else {
+    #   f <- "gaussian"
+    # }
+    
+    
+    i=1
+    
+    # place where model predictions are stored
+    solution.table<-data.frame(id = 1:nrow(df_treat_fs))
+    
+    for (i in 1:10){ # I begin with 2 because these values will indicate column position in data.frame 'solution.table'
+      
+      model <- ranger(
+        data = df_treat_fs %>% na.omit(),
+        formula = Target~.,
+        num.trees = 150,
+        max.depth = 14,
+        seed = i
+      )
+
+      solution.table[,i]<-predict(model, df_treat_fs)[[1]]
+      
+      solution.table %>% print()
+    
+    }
+    
+    if (targetMissLevels > 10) {
+    
+      solution.table$mean <- rowMeans(solution.table[,-1])
+      
+      varCleaned <- solution.table$mean
+    
+    } else {
+      
+      solution.table.count<-apply(solution.table, MARGIN=1, table)
+      
+      # Create vector where my solution will be stored
+      predict.combined<-vector()
+      
+      # Identify category with more frequency (votes) per row.
+      for (x in 1:nrow(df_treat_fs)) {
+        predict.combined[x]<-names(which.max(solution.table.count[[x]]))
+      }
+      
+      varCleaned <- predict.combined
+      
+    }
+    
+    
+    # Recuperando los originales que no eran NA
+    for (i in 1:nrow(data)) {
+      if (!is.na(data[i, missTarget])) {
+        varCleaned[i] = data[i, missTarget]
+      }
+    }
+    
+    trRows <- nrow(tr)
+    vlRows <- nrow(vl)
+    if(!is.null(test)) {
+      testRows <- nrow(test)
+    }
+    
+    bad_var <- paste(missTarget,"bad",sep = "_")
+    tr[, bad_var] <- ifelse(data[1:trRows, missTarget] %>% is.na(), 1,0)    
+    tr[, missTarget] <- varCleaned[1:trRows]
+    
+    vl[, bad_var] <- ifelse(data[(trRows+1):(trRows+vlRows), missTarget] %>% is.na(), 1,0) 
+    vl[, missTarget] <- varCleaned[(trRows+1):(trRows+vlRows)]
+    
+    if (!is.null(test)) {
+      test[, bad_var] <- ifelse(data[(trRows+vlRows+1):(data %>% nrow()), missTarget] %>% is.na(), 1,0) 
+      test[, missTarget] <- varCleaned[(trRows+vlRows+1):(data %>% nrow())]
+    }
+    
+  }
+  
+  # col <- ncol(tr)
+  
+  # for (i in 1:col) {
+  # 
+  #   c <- sapply(tr, class)
+  #   class(tr[,i]) <- c[[i]]
+  # 
+  # }
+  # 
+  # col <- ncol(vl)
+  # 
+  # for (i in 1:col) {
+  # 
+  #   c <- sapply(vl, class)
+  #   class(vl[,i]) <- c[[i]]
+  # 
+  # }
+  
+  tr <- cbind(tr, train %>% select(originalTarget))
+  vl <- cbind(vl, val %>% select(originalTarget))
+  
+  return(list(tr, vl, test))
   
 }

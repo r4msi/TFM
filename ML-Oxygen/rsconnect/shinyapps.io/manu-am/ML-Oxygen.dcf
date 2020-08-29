@@ -5,8 +5,8 @@ account: manu-am
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 2654496
-bundleId: 3494842
+bundleId: 3499318
 url: https://manu-am.shinyapps.io/ML-Oxygen/
-when: 1597018703.69624
+when: 1597100594.35362
 asMultiple: FALSE
 asStatic: FALSE

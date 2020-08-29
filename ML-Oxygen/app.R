@@ -1,5 +1,8 @@
 source("./helpers.R")
+
 library(doParallel)
+doParallel::registerDoParallel()
+
 
 ##############
 ### HEADER ###
@@ -104,7 +107,11 @@ body <- dashboardBody(
                     ,width = 2
                     ,fileInput(
                         inputId = "file"                                                ### 1. INPUT: file ###
-                        ,"Upload the file"
+                        ,"Train"
+                    )
+                    ,fileInput(
+                      inputId = "file_test"                                                ### 17. INPUT: file_test ###
+                      ,"Test"
                     )
                 )
                 ,boxPlus(
@@ -287,10 +294,13 @@ body <- dashboardBody(
                     ,width = 12
                     ,status = "warning"
                     ,closable = F
-                    ,plotOutput(
+                    ,collapsible = T
+                    ,collapsed = F
+                    ,jqui_resizable(
+                      plotOutput(
                         outputId = "corr"                               #### 13. OUTPUT: corr ###
                         ,height = 1200
-                    ) %>% withSpinner()
+                    )) %>% withSpinner()
                 )
             )
         )
@@ -315,73 +325,98 @@ body <- dashboardBody(
                             outputId = "value_target"
                         )
                         ,boxPlus(
-                            title = "Auto-Bayesian-Processing"
+                          title = "Validation"
+                          ,closable = F
+                          ,solidHeader = TRUE
+                          ,status = "warning"
+                          ,width = 12
+                          ,collapsible = T
+                          ,collapsed = F
+                          ,column(
+                            width = 12
+                            ,align = "center"
+                            ,sliderInput(                                                     ### 14. INPUT: split ###
+                              inputId = "split"
+                              ,min = .6
+                              ,max = .9
+                              ,value = .8
+                              ,step = .05
+                              ,label = "Train-Test Split"
+                            )
+                            ,sliderInput(                                                       ### 15. INPUT: cv ###
+                              inputId = "cv"
+                              ,label = "Cross-Validation"
+                              ,min = 3
+                              ,max = 10
+                              ,step = 1
+                              ,value = 3
+                            )
+                          )
+                        )
+                        ,boxPlus(
+                            title = "Preprocess"
                             ,closable = F
                             ,solidHeader = TRUE
-                            ,status = "warning"
+                            ,status = "primary"
                             ,width = 12
                             ,collapsible = T
                             ,collapsed = F
                             ,column(
                                 width = 12
                                 ,align = "center"
-                                ,radioButtons(
-                                    inputId = "rb"
-                                    ,label = "Treatment"
-                                    ,choices = c("One-Sample", "Cross-Validation-Bayes")
+                                ,h5("Random Forest Imputation")
+                                ,switchInput(
+                                    inputId = "missranger",
+                                    onStatus = "primary", 
+                                    offStatus = "warning",
+                                    label = '<i class="fas fa-question-circle"></i>'
+                                )
+                                ,h5("Outliers Treatment")
+                                ,switchInput(
+                                    inputId = "outliers",
+                                    onStatus = "primary", 
+                                    offStatus = "warning",
+                                    label = '<i class="fas fa-pastafarianism"></i>'
+                                )
+                                ,actionButton(                                             ### 14. INPUT vtreat ###
+                                    inputId = "vtreat"
+                                    ,label = "Bayesian Treatments"
                                 )
                             )
                         )
                         ,boxPlus(
-                            title = "Validation"
-                            ,closable = F
-                            ,solidHeader = TRUE
-                            ,status = "primary"
-                            ,width = 12
-                            ,collapsible = T
-                            ,collapsed = T
-                            ,column(
-                                width = 12
-                                ,align = "center"
-                                ,sliderInput(                                                     ### 14. INPUT: split ###
-                                    inputId = "split"
-                                    ,min = .6
-                                    ,max = .9
-                                    ,value = .8
-                                    ,step = .05
-                                    ,label = "Train-Test Split"
-                                )
-                                ,sliderInput(                                                       ### 15. INPUT: cv ###
-                                    inputId = "cv"
-                                    ,label = "Cross-Validation"
-                                    ,min = 3
-                                    ,max = 10
-                                    ,step = 1
-                                    ,value = 3
-                                )
-                                ,actionButton(
-                                    inputId = "process_train"                                        ### 16. INPUT: process_train ###
-                                    ,label = "Porcessing"
-                                )
+                          title = "Models"
+                          ,closable = F
+                          ,solidHeader = TRUE
+                          ,status = "info"
+                          ,width = 12
+                          ,collapsible = T
+                          ,collapsed = T
+                          ,column(
+                            width = 12
+                            ,align = "center"
+                            ,pickerInput(                                                        ### 18. INPUT: pick_model ###
+                              inputId = "pick_model"
+                              ,label = "Select Models"
+                              ,choices = c(
+                                "XGB", "Lasso", "Ridge", "ElasticNet",
+                                "LinearModel", "RandomForest", "Tree",
+                                "SVM","KNN"
+                              )
+                              ,multiple = T
+                              ,selected = c("XGB","ElasticNet")
+                              ,options = list(
+                                `actions-box` = TRUE,
+                                `select-all-text` = "Select All"
+                              )
+                              
                             )
-                        )
-                        ,boxPlus(
-                            title = "Upload Test"
-                            ,closable = F
-                            ,solidHeader = TRUE
-                            ,status = "info"
-                            ,width = 12
-                            ,collapsible = T
-                            ,collapsed = T
-                            ,column(
-                                width = 12
-                                ,align = "center"
-                                ,fileInput(
-                                    inputId = "file_test"                                                ### 17. INPUT: file_test ###
-                                    ,"Test"
-                                )
+                            ,actionButton(
+                              inputId = "process_train"                                        ### 16. INPUT: process_train ###
+                              ,label = "Porcessing"
                             )
-                            
+                          )
+                        
                         )
                         ,boxPlus(
                             title = "Predict"
@@ -398,8 +433,9 @@ body <- dashboardBody(
                                     inputId = "select_model"
                                     ,label = "Select Model"
                                     ,choices = c(
-                                        "XGB", "Lasso", "Ridge", "ElasticNet",
-                                        "LinearModel", "RandomForest", "KNN"
+                                      "XGB", "Lasso", "Ridge", "ElasticNet",
+                                      "LinearModel", "RandomForest", "Tree",
+                                      "SVM","KNN"
                                     )
                                 
                                 )
@@ -495,7 +531,7 @@ server <- function(input, output, session) {
         }
         
         unique_char <- sapply(Filter(is.character, df),function(x){ # Not advisable to plot high cardinality variables
-            length(unique(x))>=15
+            length(unique(x))>=10
         })
         char_exclude <- names(which(unique_char==TRUE))
         id <- grepl("id|ID|Id|iD",names(df)) # It does not make sense to add ID as target
@@ -510,57 +546,236 @@ server <- function(input, output, session) {
         updateSelectInput(session,"target", choices =  var) ### 3. INPUT: target ###
     })
     
+    # OBSERVE MODEL FOR PREDICTION
+    observe({
+      updateSelectInput(session,"select_model", choices =  input$pick_model) 
+    })
     
-    
-    validation <- eventReactive(input$process_train,{
-
-        showModal(modalDialog("Fitting Models" ,fade = TRUE, size = "l", footer = "1-10 mins"))
+    vtreat <- eventReactive(input$vtreat,{
+        
         df <- filedata()
         if (is.null(df)) {
             return(NULL)
         }
         
-        if (length(unique(df[,input$target]))<=5) {
+        test <- filetest()
+        
+        
+        df <- lapply(df,function(x){
             
-            df[,input$target] <- factor(df[,input$target])
+            ifelse(x %in% c("","NA","N/A","Unknown","unknown","missing", "Missing", "?", "na", " ", "n/a"), NA, x)
             
-            list <- names(select(df,-input$target)) 
-            treatments <- vtreat::designTreatmentsC(df, varlist = list, outcomename = input$target, outcometarget = df[,input$target][1])
-            df_treat <- vtreat::prepare(treatments, df)
-            df_treat_fs <- df_treat[,treatments$scoreFrame$recommended] # Variables recomendadas.
-            df_treat_fs$Target <- df_treat[,input$target]
+        })
+        
+        df <- df %>% as.data.frame()
+        
+        test <- lapply(test,function(x){
+
+          ifelse(x %in% c("","NA","N/A","Unknown","unknown","missing", "Missing", "?", "na", " ", "n/a"), NA, x)
+
+        })
+        
+        test <- test %>% as.data.frame()
+        
+        df$target <- df[,input$target]
+        df[,input$target] <- NULL
+        
+        targetLevels <- length(unique(df[,"target"]))
+        
+        r <- recipe(target~., data = df) %>% 
+          step_YeoJohnson(all_numeric(),-all_outcomes()) 
+        
+        df <- r %>% prep %>% juice() %>% as.data.frame()
+        
+        test <- r %>% prep %>% bake(test) %>% as.data.frame()
+        
+        
+        if (targetLevels > 10) {
             
-            df_treat_fs$Target <- make.names(df_treat_fs$Target)
+            set.seed(123)
+            inTrain <- createDataPartition(df$target, p = input$split, list = FALSE)
+            training <- df[ inTrain,]
+            testing <- df[-inTrain,]
             
-        } else {
-            list <- names(select(df,-input$target)) 
-            treatments <- vtreat::designTreatmentsN(df, varlist = list, outcomename = input$target)
-            df_treat <- vtreat::prepare(treatments, df)
-            df_treat_fs <- df_treat[,treatments$scoreFrame$recommended] # Variables recomendadas.
-            df_treat_fs$Target <- df_treat[,input$target]
+            if (input$missranger == TRUE) {
+              
+              l <- missVtreatRanger(training,testing,test,"target")
+              training <- l[[1]]
+              testing <- l[[2]]
+              test <- l[[3]]
+              
+            }
+            
+            list <- names(select(training,-target)) # training
+            set.seed(123)
+            treatments <- vtreat::mkCrossFrameNExperiment(
+                training,
+                varlist = list,
+                outcomename = "target",
+                collarProb = .03, doCollar = input$outliers
+            )
+            df_treat <- treatments$crossFrame
+            df_treat_fs <- select(df_treat,-target)[,treatments$treatments$scoreFrame$recommended]
+            df_treat_fs$Target <- df_treat[,"target"]
+            
+        } else if (targetLevels <= 10) {
+            
+            df$target <- df$target %>% factor()
+            set.seed(123)
+            inTrain <- createDataPartition(df$target, p = input$split, list = FALSE)
+            training <- df[ inTrain,]
+            testing <- df[-inTrain,]
+            
+            if (input$missranger == TRUE) {
+              
+              l <- missVtreatRanger(training, testing, test,"target")
+              training <- l[[1]]
+              testing <- l[[2]]
+              test <- l[[3]]
+              
+            }
+            
+            list <- names(select(df,-target)) 
+            set.seed(123)
+            treatments <- vtreat::mkCrossFrameCExperiment(
+                training,
+                varlist = list,
+                outcomename = "target",
+                outcometarget = df[,"target"][[2]],
+                collarProb = .03, doCollar = input$outliers
+            )
+            df_treat <- treatments$crossFrame
+            df_treat_fs <- select(df_treat,-target)[,treatments$treatments$scoreFrame$recommended]
+            df_treat_fs$Target <- df_treat[,"target"]
+            
         }
         
-        inTrain <- createDataPartition(y = df_treat_fs$Target, p = input$split, list = FALSE)
-        training <- df_treat_fs[ inTrain,]
-        testing <- df_treat_fs[-inTrain,]
+        testing_treat <- vtreat::prepare(treatments$treatments, testing, doCollar = input$outliers)
         
+        return(list(
+            treatments = treatments,
+            test = test,
+            df_treat_fs = df_treat_fs,
+            testing_treat = testing_treat,
+            targetLevels = targetLevels,
+            training = training,
+            testing = testing
+        ))
         
+    })
+    
+    observe_upload_preprocess <- observe({                           ### Warning if data it's not upload ###
+        
+        df <- filedata()
+        
+        if (is.null(df) & input$vtreat>0) {
+
+            return(
+                show_alert(
+                    title = "Upload Data First!",
+                    type = "warning"
+                )
+            )
+        }
+        
+    })
+    
+    activate_Preprocess <- observeEvent(input$vtreat,{                                      ### Activate preprocess ###
+        
+        df <- filedata()
+        
+        if (is.null(df)) {
+            return(NULL)
+        }
+        
+        if (!is.null(df)) {
+            
+            showModal(modalDialog("Preprocessing" ,fade = TRUE, size = "l", footer = "5 - 60 sec"))
+            vtreat()$treatments
+            vtreat()$df_treat_fs
+            vtreat()$targetLevels
+            vtreat()$testing_treat
+            removeModal()
+            show_alert(
+                title = "Success",
+                text = "All in order",
+                type = "success"
+            )
+        }
+    })
+    
+    # observe_validation <- observeEvent(input$process_train,{                           ### Warning if data it's not upload ###
+    #     
+    #     df <- filedata()
+    #     t <- vtreat()$treatments
+    #     
+    #     if (is.null(df) & input$process_train >0) {
+    #         
+    #         return(
+    #             show_alert(
+    #                 title = "Upload Data First!",
+    #                 type = "warning"
+    #             )
+    #         )
+    #     } else if (!is.null(df) & is.null(t) & input$process_train >0 ){
+    #         
+    #         return(
+    #             show_alert(
+    #                 title = "Preprocess Data First!",
+    #                 type = "warning"
+    #             )
+    #         )
+    #         
+    #     }
+    #     
+    # })
+    
+    warning <- observe({
+      
+      treatments <- vtreat()$treatments
+      
+      if (is.null(treatments)&input$process_train>0) {
+        
+        return(
+          show_alert(
+            title = "Preprocess data first!",
+            type = "warning"
+          )
+        )
+      }
+      
+    })
+    
+    
+    validation <- eventReactive(input$process_train,{
+      
+        df <- filedata()
+        if (is.null(df)) {
+            return(NULL)
+        }
+        
+        df_treat_fs <- vtreat()$df_treat_fs
+        targetLevels <- vtreat()$targetLevels
+        
+        showModal(modalDialog("Fitting Models" ,fade = TRUE, size = "l", footer = "1-30 mins"))
+        
+        set.seed(123)
         trControl <- trainControl(
             method = "cv",
             savePredictions = "final",
-            index = createFolds(training$Target, k =input$cv), 
+            index = createFolds(df_treat_fs$Target, k =input$cv),
             allowParallel = TRUE,
             verboseIter = FALSE
         )
-        
+
         xgbTreeGrid <- expand.grid(
-            nrounds = 150,
-            max_depth = 8,
-            eta = 0.02,
-            gamma = 0.05,
-            colsample_bytree = c(.3),
-            subsample = 0.7,
-            min_child_weight = 5)
+            nrounds = 50,
+            max_depth = 3,
+            eta = 0.3,
+            gamma = 0,
+            colsample_bytree = .6,
+            subsample = 0.75,
+            min_child_weight = 1)
         lassoGrid <- expand.grid(
             alpha =1,
             lambda = .1
@@ -570,64 +785,123 @@ server <- function(input, output, session) {
             lambda = .1
         )
         elasticNetGrid <- expand.grid(
-            alpha = .5
+            alpha = 0.5
             ,lambda = .1
         )
         linearGrid <- expand.grid(
             alpha = 0,
             lambda = 0
         )
-        if (length(unique(df[,input$target]))<=15) {
+        if (targetLevels<=10) {
             rfGrid <- expand.grid(
-                mtry = round(sqrt(ncol(training))),
+                mtry = round(sqrt(ncol(df_treat_fs))),
                 splitrule = "gini",
                 min.node.size = 1)
         } else {
             rfGrid <- expand.grid(
-                mtry = round(sqrt(ncol(training))),
+                mtry = round(sqrt(ncol(df_treat_fs))),
                 splitrule = "variance",
                 min.node.size = 5)
         }
         knnGrid <- expand.grid(
-            k = 3
+            k = 5
+        )
+        svmGrid <- expand.grid(
+            sigma = 0.09581,
+            C = .5
+        )
+
+
+        l <- list(
+          XGB    = caretModelSpec(method = "xgbTree", tuneGrid = xgbTreeGrid),
+          Lasso = caretModelSpec(method = "glmnet", tuneGrid = lassoGrid),
+          Ridge = caretModelSpec(method = "glmnet", tuneGrid = ridgeGrid),
+          ElasticNet = caretModelSpec(method = "glmnet", tuneGrid = elasticNetGrid),
+          LinearModel = caretModelSpec(method = "glmnet", tuneGrid = linearGrid),
+          RandomForest = caretModelSpec(method = "ranger", tuneGrid = rfGrid),
+          Tree = caretModelSpec(method = "rpart"),
+          SVM = caretModelSpec(method = "svmRadial", tune_grid = svmGrid),
+          KNN   = caretModelSpec(method = "knn", tuneGrid = knnGrid,  preProcess = c("center","scale"))
         )
         
-        if (length(unique(df[,input$target]))==2 | length(unique(df[,input$target])) > 15 ) {
-        
+
+        l_m <- list(
+          XGB    = caretModelSpec(method = "xgbTree", tuneGrid = xgbTreeGrid),
+          RandomForest     = caretModelSpec(method = "ranger", tuneGrid = rfGrid, num.trees=150),
+          Tree = caretModelSpec(method = "rpart"),
+          SVM = caretModelSpec(method = "svmRadial", tune_grid = svmGrid, preProcess = c("center","scale"))
+        )
+
+      
+        if (targetLevels == 2 | targetLevels > 10) {
+            
+            if (length(input$pick_model) >= 2) {
+              
+              m <- sapply(l %>% names, function(x){
+                x == input$pick_model
+              })
+              
+              r <- which(apply(m, 2,sum) == 0) %>% names
+              
+              l[r] <- NULL
+            
+            } else {
+              
+              show_alert(
+                title = "Warning",
+                text = "Needed at least 2 models. Using XGB, SVM, Tree & RF",
+                type = "warning"
+              )
+              
+              l <- l_m
+            }
+            
+            set.seed(123)
             modelList <- caretList(
-                Target ~ ., data = training,
+                Target ~ ., data = df_treat_fs,
                 trControl = trControl,
-                tuneList = list(
-                    XGB    = caretModelSpec(method = "xgbTree", tuneGrid = xgbTreeGrid),
-                    Lasso = caretModelSpec(method = "glmnet", tuneGrid = lassoGrid),
-                    Ridge = caretModelSpec(method = "glmnet", tuneGrid = ridgeGrid),
-                    ElasticNet = caretModelSpec(method = "glmnet", tuneGrid = elasticNetGrid),
-                    LinearModel = caretModelSpec(method = "glmnet", tuneGrid = linearGrid),
-                    RandomForest     = caretModelSpec(method = "ranger", tuneGrid = rfGrid),
-                    KNN   = caretModelSpec(method = "knn", tuneGrid = knnGrid)
-                )
+                tuneList = l
             )
         
         }
         
         else {
+          
+            if (length(input$pick_model) >= 2) {
+              m <- sapply(l_m %>% names, function(x){
+                x == input$pick_model
+              })
+              
+              r <- which(apply(m, 2,sum) == 0) %>% names
+              
+              l_m[r] <- NULL
+            } else {
+              show_alert(
+                title = "Warning",
+                text = "Needed at least 2 models. Using XGB, SVM, Tree & RF",
+                type = "warning"
+              )
+            }
+            
+            set.seed(123)
             modelList <- caretList(
-                Target ~ ., data = training,
+                Target ~ ., data = df_treat_fs,
                 trControl = trControl,
-                tuneList = list(
-                    XGB    = caretModelSpec(method = "xgbTree", tuneGrid = xgbTreeGrid),
-                    RandomForest     = caretModelSpec(method = "ranger", tuneGrid = rfGrid),
-                    KNN   = caretModelSpec(method = "knn", tuneGrid = knnGrid)
-                )
+                tuneList = l_m
             )
         }
         
         removeModal()
-        #doParallel::stopImplicitCluster()
+        
+        show_alert(
+            title = "Success",
+            text = "All in order",
+            type = "success"
+        )
+   
         return(list(
-            treatments = treatments,
             modelList = modelList,
-            testing = testing
+            trControl = trControl
         ))
 
     })
@@ -758,10 +1032,17 @@ server <- function(input, output, session) {
             return(readRDS("rds/na.RDS"))
         }
         
+        na <- lapply(df,function(x){
+            
+            ifelse(x %in% c("","NA","N/A","Unknown","unknown","missing", "Missing", "?", "na", " "), NA, x)
+            
+        })
+        
+        na <- na %>% as.data.frame()
+        
         plot_missing(
-            df, 
-            #ggtheme = theme_plex, 
-            title = "NA", 
+            na, 
+            ggtheme = theme_plex, 
             missing_only = TRUE
         )
         
@@ -804,8 +1085,7 @@ server <- function(input, output, session) {
         plot_histogram(
             df, 
             geom_histogram_args = list("fill" = sample(colors,size=1), "alpha"=0.8),
-            #ggtheme = theme_plex,
-            title = "Numerical Distributions",
+            ggtheme = theme_plex,
             nrow = ncol(Filter(is.numeric, df))
         ) 
         
@@ -821,8 +1101,7 @@ server <- function(input, output, session) {
         plot_boxplot(
             df, 
             geom_boxplot_args = list("fill" = sample(colors,size=1), "alpha"=0.8),
-            #ggtheme = theme_plex,
-            title = "Bivariate Numerical Boxplot",
+            ggtheme = theme_plex,
             by = input$target,
             nrow = ncol(Filter(is.numeric, df))
             
@@ -869,8 +1148,7 @@ server <- function(input, output, session) {
             data = df,
             binary_as_factor = TRUE,
             maxcat = 15,
-            #ggtheme = theme_plex,
-            title = "Bar Plot Univariate",
+            ggtheme = theme_plex,
             nrow = ncol(df[,cardinality])
         )
         
@@ -882,7 +1160,7 @@ server <- function(input, output, session) {
         
         df <- filedata()
         if (is.null(df)) {
-            return(readRDS("rds/barplot_bi.RDS.RDS"))
+            return(readRDS("rds/barplot_bi.RDS"))
         }
         
         if (nrow(unique(select(df,input$target)))<=15) {
@@ -902,7 +1180,7 @@ server <- function(input, output, session) {
                     group = "Target",
                     binary_as_factor = T,
                     maxcat = 15,
-                    title = "Bar Plot Bivariate",
+                    ggtheme = theme_plex,
                     nrow = ncol(df[,cardinality]),
                     ncol = 3
                 )
@@ -932,8 +1210,9 @@ server <- function(input, output, session) {
         }
         
         plot_correlation(
-            na.omit(df)
-            #ggtheme = theme_plex
+            na.omit(df),
+            maxcat = 10,
+            ggtheme = theme_plex
         ) 
         
         
@@ -969,13 +1248,16 @@ server <- function(input, output, session) {
     
     output$cv_model_results <- renderPlotly({                                                                 ### 18. OUTPUT: cv_model_results ###
         
+          
         modelList <- validation()$modelList
         
+        first_model <- names(modelList)[1]
+        last_model <- names(modelList)[length(modelList)]
         
         a <- modelList %>% 
             resamples() %>% 
             data.frame() %>% 
-            pivot_longer(XGB:KNN) %>% 
+            pivot_longer(first_model:last_model) %>% 
             ggplot(., aes(reorder(name,value), value)) + 
             geom_boxplot(color="dodgerblue") + 
             coord_flip() + 
@@ -986,64 +1268,252 @@ server <- function(input, output, session) {
     })
     
     output$test_models_results <- renderPlotly({                                                                 ### 19. OUTPUT: test_models_results ###
+
+        modelList2 <- validation()$modelList
+        testing_treat <- vtreat()$testing_treat
+        treatments <- vtreat()$treatments
         
-        modelList <- validation()$modelList
-        testing <- validation()$testing
+        modelList <- modelList2
         
-        if (length(unique(testing$Target))<=5) {
+        first_model <- names(modelList)[1]
+        last_model <- names(modelList)[length(modelList)]
+
+        targetLevels <- length(unique(testing_treat[,"target"]))
         
+        min <- length(input$pick_model) + 1
+        max <- min * 2
+
+        if (targetLevels == 2) {
+
             metric_results <- sapply(modelList, function(x){
-                y_pred <- predict(x,testing)
-                results <- postResample(y_pred, testing$Target %>% factor)
-            }) %>% data.frame() %>% 
-                pivot_longer(XGB:KNN) %>% 
+                y_pred <- predict(x,testing_treat)
+                results <- postResample(y_pred, testing_treat$target %>% factor)
+            }) %>% data.frame() %>%
+                pivot_longer(first_model:last_model) %>%
                 mutate(Metric="Accuracy")
-            
-            metric_results[8:14,]$Metric <- "Kappa"
-        
-        } else {
+           
+            metric_results[min:max,]$Metric <- "Kappa"
+
+        } else if (targetLevels > 10) {
+
             metric_results <- sapply(modelList, function(x){
-                y_pred <- predict(x,testing)
-                results <- postResample(y_pred, testing$Target)
-            }) %>% data.frame() %>% 
-                pivot_longer(XGB:KNN) %>% 
+                y_pred <- predict(x,testing_treat)
+                results <- postResample(y_pred, testing_treat$target)
+            }) %>% data.frame() %>%
+                pivot_longer(first_model:last_model) %>%
                 mutate(Metric="RMSE")
-            
-            metric_results <- metric_results[1:7,]
-          
+
+            metric_results <- metric_results[1:min,]
+
+        } else {
+
+            metric_results <- sapply(modelList, function(x){
+                y_pred <- predict(x,testing_treat)
+                results <- postResample(y_pred, testing_treat$target %>% factor)
+            }) %>% data.frame() %>%
+                pivot_longer(first_model:last_model) %>%
+                mutate(Metric="Accuracy")
+
+            metric_results[min:max,]$Metric <- "Kappa"
+
         }
-        
-        b <- metric_results %>% 
-            ggplot(.,aes(reorder(name,value),value)) + 
-                geom_col(fill=sample(colors,1)) + 
-                facet_wrap(~Metric) + 
+
+        b <- metric_results %>%
+            ggplot(.,aes(reorder(name,value),value)) +
+                geom_col(fill=sample(colors,1)) +
+                facet_wrap(~Metric) +
                 coord_flip() +labs(y=NULL,x=NULL)
-        
+
         ggplotly(b)
+
+    })
+    
+    show_pred <- observe({
+      
+      test <- filetest()
+      
+      if (input$predict>0 & is.null(test)) {
         
+        return(
+          show_alert(
+            title = "Upload Test First!",
+            type = "warning"
+          )
+        )
+        
+      } else if (input$predict>0 & input$process_train >0) {
+        showModal(modalDialog("Computing predictions." ,fade = TRUE, size = "l", footer = NULL))
+        pred()$pred
+        Sys.sleep(2)
+        removeModal()
+      }
+      
     })
     
     pred <- eventReactive(input$predict,{
-        
-        treatments <- validation()$treatments
-      
+    
+        # t t
+        treatments <- vtreat()$treatments
+        test <- vtreat()$test
         df <- filedata()
+        df_treat_fs <- vtreat()$df_treat_fs
         modelList <- validation()$modelList
+        ll <- validation()$ll
+        training <- vtreat()$training
+        testing <- vtreat()$testing
+        targetLevels <- vtreat()$targetLevels
+        
     
         
         if (is.null(treatments) | is.null(test)) {return(NULL)}
         
+        # if (input$predict > 0) {
+        #     showModal(modalDialog("Predicting" ,fade = TRUE, size = "l", footer = "Less than 15 sec"))
+        #     removeModal()
+        # }
+        # 
+        train_total <- rbind(
+          training,
+          testing
+        )
+
+        trControl <- trainControl(
+          method = "cv",
+          savePredictions = "final",
+          search = "random",
+          index = createFolds(train_total$target, k =3),
+          allowParallel = TRUE,
+          verboseIter = FALSE
+        )
         
-        showModal(modalDialog("Predicting" ,fade = TRUE, size = "l", footer = "Less than 30"))
+        # trControl <- trainControl(
+        #   method = "cv",
+        #   savePredictions = "final",
+        #   search = "random",
+        #   index = createFolds(df_treat_fs$Target, k =3),
+        #   allowParallel = TRUE,
+        #   verboseIter = FALSE
+        # )
         
-        Sys.sleep(5)
-        test_treated <- prepare(treatments, test)
-        pred <- predict(modelList$RandomForest, test_treated)
         
-        removeModal()
+        if (targetLevels > 10) {
+
+          list <- names(select(train_total,-target)) # training
+          set.seed(123)
+          treatments <- vtreat::mkCrossFrameNExperiment(
+            train_total,
+            varlist = list,
+            outcomename = "target",
+            collarProb = .03, doCollar = input$outliers
+          )
+          df_treat <- treatments$crossFrame
+          df_treat_fs <- select(df_treat,-target)[,treatments$treatments$scoreFrame$recommended]
+          df_treat_fs$Target <- df_treat[,"target"]
+
+        } else if (targetLevels <= 10) {
+
+          list <- names(select(train_total,-target))
+          set.seed(123)
+          treatments <- vtreat::mkCrossFrameCExperiment(
+            train_total,
+            varlist = list,
+            outcomename = "target",
+            outcometarget = train_total[,"target"][[2]],
+            collarProb = .03, doCollar = input$outliers
+          )
+          df_treat <- treatments$crossFrame
+          df_treat_fs <- select(df_treat,-target)[,treatments$treatments$scoreFrame$recommended]
+          df_treat_fs$Target <- df_treat[,"target"]
+
+        }
+
+        ll <- list(
+          XGB    = caretModelSpec(method = "xgbTree"),
+          Lasso = caretModelSpec(method = "glmnet"),
+          Ridge = caretModelSpec(method = "glmnet"),
+          ElasticNet = caretModelSpec(method = "glmnet"),
+          LinearModel = caretModelSpec(method = "glmnet", tuneGrid = expand.grid(
+            alpha = 0,
+            lambda = 0
+          )),
+          RandomForest = caretModelSpec(method = "ranger"),
+          Tree = caretModelSpec(method = "rpart"),
+          SVM = caretModelSpec(method = "svmRadial"),
+          KNN   = caretModelSpec(method = "knn",  preProcess = c("center","scale"))
+        )
         
+        m <- sapply(ll %>% names, function(x){
+          x != input$select_model
+        })
+        
+        ll[m] <- NULL
+        
+        test_treated <- vtreat::prepare(treatments$treatments, test, doCollar = input$outliers)
+        
+        i=1
+        
+        # place where model predictions are stored
+        solution.table <- data.frame(id = 1:nrow(test_treated))
+        
+     
+         
+        set.seed(123)
+        modelList <- caretList(
+          Target ~ ., data = df_treat_fs,
+          trControl = trControl,
+          tuneList = ll,
+          tuneLength = 30
+        )
+ 
+        for (i in 1:9){
+          
+          set.seed(i)
+          model <- train(
+            Target ~ ., 
+            data = df_treat_fs,
+            trControl = trainControl(method="none"),
+            tuneGrid = modelList[[1]]$bestTune,
+            method = modelList[[1]]$method
+          )
+   
+          solution.table[,i] <- predict(model, test_treated)
+
+          
+        }
+        
+    
+    
+        if (targetLevels > 10) {
+          
+          solution.table$mean <- rowMeans(solution.table[,-1])
+          
+          pred <- solution.table$mean
+          
+        } else {
+          
+          solution.table.count<-apply(solution.table, MARGIN=1, table)
+          
+          # Create vector where my solution will be stored
+          predict.combined<-vector()
+          
+          
+          # Identify category with more frequency (votes) per row.
+          for (x in 1:nrow(test_treated)) {
+            predict.combined[x]<-names(which.max(solution.table.count[[x]]))
+          }
+          
+          pred <- predict.combined
+          
+        }
+            
+            # pred <- predict(modelList[input$select_model], test_treated)
+          
+            
         return(list(pred=pred))
+            
     })
+    
+    
     
     output$download_predict <- downloadHandler(
         filename = function() {
