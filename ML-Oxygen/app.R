@@ -1,7 +1,8 @@
 source("./helpers.R")
 
-library(doParallel)
-doParallel::registerDoParallel()
+# library(doParallel)
+# doParallel::registerDoParallel()
+#doParallel::stopImplicitCluster()
 
 
 ##############
@@ -12,10 +13,10 @@ doParallel::registerDoParallel()
 header <- dashboardHeaderPlus(
     
     title = tagList(
-        span(class = "logo-lg", "ML Oxygen 0.1.0")
-        ,img(src = "https://image.flaticon.com/icons/svg/204/204074.svg")
+        span(class = "logo-lg", "Oxygen ML")
+        ,img(src = "https://image.flaticon.com/icons/svg/119/119593.svg")
     )
-    ,enable_rightsidebar = T
+    ,enable_rightsidebar = F
     
 )
 
@@ -27,19 +28,29 @@ sidebar <- dashboardSidebar(
     
     sidebarMenu(
         menuItem(
-            text= "Data"
-            ,tabName = "data"
-            ,icon = icon("database")
+          text= "Data"
+          ,tabName = "data"
+          ,icon = icon("database")
+        )
+        ,menuItem(
+            text= "Stats"
+            ,tabName = "stats"
+            ,icon = icon("poll-h")
         )
         ,menuItem(
             text = "EDA"
             ,tabName = "eda"
-            ,icon = icon("dashboard")
+            ,icon = icon("paint-brush")
         )
         ,menuItem(
             text = "ML"
             ,tabName = "ml"
             ,icon = icon("rocket")
+        )
+        ,menuItem(
+          text = "Feature Importance"
+          ,tabName = "fi"
+          ,icon = icon("star")
         )
         
     )
@@ -61,6 +72,254 @@ body <- dashboardBody(
         ##############
         
         tabItem(
+            tabName = "data"
+            ,fluidRow(
+              column(
+                width = 4
+                ,boxPlus(
+                  title = "Workflow",
+                  status = "info",
+                  width = 12,
+                  collapsible = T,
+                  closable = F,
+                  timelineBlock(
+                    timelineEnd(color = "danger"),
+                    timelineLabel("First", color = "teal"),
+                    timelineItem(
+                      title = "Load Data",
+                      icon = "database",
+                      color = "olive",
+                      "Upload txt/csv/excel files, google sheets or connect to SQL."
+                    ),
+                    timelineLabel("Second", color = "orange"),
+                    timelineItem(
+                      title = "Explore the basics stats",
+                      icon = "poll-h",
+                      color = "maroon",
+                      "Data dimensions, maximum, minimum, mean, cardinality... is the data integrity correct?",
+                    ),
+                    timelineLabel("Third", color = "blue"),
+                    timelineItem(
+                      title = "Explore the EDA",
+                      icon = "paint-brush",
+                      color = "black",
+                      "Observe variables' distribution, correlations, missing values for a better data understaning."
+                    ),
+                    timelineLabel("Fourth", color = "green"),
+                    timelineItem(
+                      title = "Preprocess & Model & Predict",
+                      icon = "rocket",
+                      color = "yellow",
+                      "Impute missing values, transform variables, create new bayesian variables and perform feature selection.
+                      Compare different algorithms using cross validation: Shrinkage methods, support vector machines, boosting, ensemble learning...
+                      Select the best model & tune it up. If you have test data, make predictions, otherwise, save the model.
+                      "
+                    ),
+                    timelineLabel("Fifth", color = "purple"),
+                    timelineItem(
+                      title = "Observe Outliers & Feature Importance",
+                      icon = "star",
+                      color = "navy",
+                      "Observes the variables that reduced the error the most in a random forest and the atypical observations."
+                    ),
+                    timelineStart(color = "gray")
+                  )
+                )
+              )
+              ,column(
+                width = 4
+                ,flipBox(
+                  id = 1,
+                  main_img = "https://image.flaticon.com/icons/svg/888/888900.svg",
+                  header_img = "https://image.flaticon.com/icons/svg/119/119598.svg",
+                  front_title = "Conventional Files",
+                  front_btn_text = "GO",
+                  br(),
+                  br(),
+                  br(),
+                  "Available formats are: CSV, TXT, XLS, XLSX",
+                  br(),
+                  br(),
+                  br(),
+                  progressBar(id="p1", value = 1, striped = T, title = "Not Uploaded", status = "danger"),
+                  br(),
+                  back_content = tagList(
+                      br(),
+                      box(
+                        title = "Load Data"
+                        ,status = "success"
+                        ,solidHeader = T
+                        ,width = 12
+                        ,fileInput(
+                          inputId = "file"                                                ### 1. INPUT: file ###
+                          ,"Train"
+                        )
+                        ,fileInput(
+                          inputId = "file_test"                                                ### 17. INPUT: file_test ###
+                          ,"Test"
+                        )
+                    )
+                  )
+                )
+                ,br()
+                ,flipBox(
+                  id = 3,
+                  main_img = "https://image.flaticon.com/icons/svg/3439/3439047.svg",
+                  header_img = "https://image.flaticon.com/icons/svg/119/119579.svg",
+                  front_title = "SQL",
+                  front_btn_text = "GO",
+                  br(),
+                  br(),
+                  br(),
+                  "Connect to MySQL.",
+                  br(),
+                  br(),
+                  br(),
+                  progressBar(id="p3", value = 1, striped = T, title = "Not Uploaded", status = "danger"),
+                  br(),
+                  back_content = tagList(
+                    column(
+                      width = 6,
+                      align = "center",
+                      textInputAddon(
+                        inputId = "host_sql",
+                        label = "Host",
+                        addon = icon("home"),
+                        placeholder = "localhost"
+                      )
+                      ,textInputAddon(
+                        inputId = "port_sql",
+                        label = "Port",
+                        addon = icon("ship"),
+                        placeholder = "3306"
+                      )
+                      ,textInputAddon(
+                        inputId = "db_sql",
+                        label = "Database",
+                        addon = icon("database"),
+                        placeholder = "Sales"
+                      )
+                      ,textAreaInput(
+                        inputId = "query_sql_t",
+                        label = "Train",
+                        placeholder = "SELECT * FROM clients"
+                      )
+                      ,actionButton(
+                        inputId = "run_sql_tr",
+                        label = "Query"
+                      )
+                    )
+                    ,column(
+                      width = 6
+                      ,textInputAddon(
+                        inputId = "user_sql",
+                        label = "User",
+                        addon = icon("user"),
+                        placeholder = "username"
+                      )
+                      ,textInputAddon( 
+                        inputId = "pw_sql",
+                        label = "Password",
+                        addon = icon("key"),
+                        placeholder = "******"
+                      )
+                      ,textInputAddon( 
+                        inputId = "driver_sql",
+                        label = "Driver",
+                        addon = icon("dharmachakra"),
+                        value = "MySQL"
+                      )
+                      ,textAreaInput(
+                        inputId = "query_sql_tst",
+                        label = "Query Test",
+                        placeholder = "SELECT * FROM clients_test"
+                      )
+                      ,actionButton(
+                        inputId = "run_sql_tst",
+                        label = "Query"
+                      )
+                    )
+                  
+                  )
+                )
+              )
+              ,column(
+                width = 4
+                ,flipBox(
+                  id = 2,
+                  main_img = "https://image.flaticon.com/icons/svg/281/281778.svg",
+                  header_img = "https://image.flaticon.com/icons/svg/119/119594.svg",
+                  front_title = "Google Sheets",
+                  front_btn_text = "GO",
+                  br(),
+                  br(),
+                  br(),
+                  "Introduce the spread sheet URL or the sheet ID (for encoding).",
+                  br(),
+                  br(),
+                  br(),
+                  progressBar(id="p2", value = 1, striped = T, title = "Not Uploaded", status = "danger"),
+                  br(),
+                  back_content = tagList(
+                    column(
+                      width = 12,
+                      align = "center",
+                      br(),
+                      br(),
+                      br(),
+                      boxPlus(
+                        width = 12
+                        ,title = "URL"
+                        ,status = "info"
+                        ,solidHeader = T
+                        ,closable = F
+                        ,textInputAddon( 
+                          inputId = "train_g",
+                          label = "Train",
+                          value = "",
+                          placeholder = "https://docs.google.com/spreadsheets/...",
+                          addon = icon("link")
+                        ),
+                        textInputAddon(
+                          inputId = "test_g",
+                          label = "Test",
+                          value = "",
+                          placeholder = "https://docs.google.com/spreadsheets/...",
+                          addon = icon("link")
+                        )
+                      )
+                    )
+                  )
+                )
+                ,br()
+                ,flipBox(
+                  id = 4,
+                  main_img = "https://image.flaticon.com/icons/svg/1051/1051275.svg",
+                  header_img = "https://image.flaticon.com/icons/svg/119/119597.svg",
+                  front_title = "Github",
+                  front_btn_text = "GO",
+                  br(),
+                  br(),
+                  br(),
+                  "Load data from github links.",
+                  br(),
+                  br(),
+                  br(),
+                  progressBar(id="p4", value = 1, striped = T, title = "Not Uploaded", status = "danger"),
+                  br(),
+                  back_content = tagList(
+                    column(
+                      width = 12,
+                      align = "center")
+                      
+                  )
+                )
+              )
+            )
+        )
+    
+        
+        ,tabItem(
             tags$head(tags$style(HTML("
                                 #final_text {
                                   text-align: center;
@@ -70,7 +329,7 @@ body <- dashboardBody(
                                 }
                                 "))),
             
-            tabName = "data"
+            tabName = "stats"
             # Hay que hacer fluid Rows para que todo quede ordenado
             ,fluidRow(
                 valueBoxOutput(
@@ -100,25 +359,12 @@ body <- dashboardBody(
             )
             
             ,fluidRow(
-                box(
-                    title = "Load Data"
-                    ,status = "success"
-                    ,solidHeader = T
-                    ,width = 2
-                    ,fileInput(
-                        inputId = "file"                                                ### 1. INPUT: file ###
-                        ,"Train"
-                    )
-                    ,fileInput(
-                      inputId = "file_test"                                                ### 17. INPUT: file_test ###
-                      ,"Test"
-                    )
-                )
-                ,boxPlus(
+              
+                boxPlus(
                     title = ""
                     ,status = "success"
                     ,solidHeader = F
-                    ,width = 10
+                    ,width = 12
                     ,closable = F
                     ,enable_label = T
                     ,label_text = "Change Variable Class"
@@ -131,6 +377,7 @@ body <- dashboardBody(
                             ,choices = c("Numeric", "Character", "Dates")
                         )
                     )
+                  
                     ,column(
                         width = 12
                         ,align = "center"
@@ -138,6 +385,7 @@ body <- dashboardBody(
                     )
               
                 )
+                
             )
             
             ,fluidRow(
@@ -439,6 +687,13 @@ body <- dashboardBody(
                                     )
                                 
                                 )
+                                ,switchInput(
+                                  inputId = "tune_lenght",
+                                  onStatus = "primary", 
+                                  offStatus = "warning",
+                                  value = FALSE,
+                                  label = '<i class="fas fa-wrench"></i>'
+                                )
                                 ,actionButton(
                                     inputId = "predict"
                                     ,label = "Predict"
@@ -476,7 +731,36 @@ body <- dashboardBody(
                     )
                 )
             )
-        
+        )    
+        ################
+        ### PAGE  IV ###
+        ################
+        ,tabItem(
+          tabName = "fi"
+          ,fluidRow(
+            column(
+              width = 12
+              ,boxPlus(
+                title = "Feaure Importance"
+                ,status = "info"
+                ,closable = F
+                ,width = 6
+                ,plotlyOutput(
+                  outputId = "ranger_importance"
+                ) %>% withSpinner()
+              )
+              ,boxPlus(
+                title = "Outliers"
+                ,status = "warning"
+                ,closable = F
+                ,width = 6
+                ,plotOutput(
+                  outputId = "ranger_outliers"
+                ) %>% withSpinner()
+              )
+            )
+          )
+            
         )
         
     )
@@ -504,28 +788,187 @@ server <- function(input, output, session) {
     
     options(shiny.maxRequestSize=30*1024^2) # 35 MB
     
-    # Para poder cambiar de data hay que hacerlo reactivo. ### 1. INPUT: file ###
+    # Conventional data #
     filedata <- reactive({
+      
         infile <- input$file
+        infile2 <- input$train_g
         # User has not uploaded a file yet
-        if (is.null(infile)){
+        if (is.null(infile) & infile2==""){
             return(NULL)
         }
-        fread(infile$datapath, integer64 = "numeric",data.table = F) # datapath es lo que devuelve input$file
+        
+        if (!is.null(infile)) {
+          
+          if (grepl(".csv|.txt", infile$datapath) == TRUE) {
+            
+            return(fread(infile$datapath, integer64 = "numeric",data.table = F)) # datapath es lo que devuelve input$file
+            
+          } else if (grepl(".xlsx|.xls", infile$datapath) == TRUE) {
+            
+            return(read_excel(infile$datapath))
+            
+          } else {
+            
+            show_alert(
+              title = "The file must be csv/txt/xlsx/xls",
+              type = "warning"
+            )
+            
+            return(NULL)
+            
+          }
+          
+        }
+        
+        if (infile2 != "") {
+          
+          if (!is.null(infile)) {
+            
+            show_alert(
+              title = "Reload: Other data is loaded.",
+              type = "warning"
+            )
+            
+          } else if (grepl("spreadsheet", infile2) == TRUE) {
+            
+            gs4_auth(cache = FALSE)
+            return(read_sheet(infile2,na = c("", " ", "NA", "na", "null", "NULL", "Na"),))
+            
+          } else {
+            
+            show_alert(
+              title = "Must be a spreadsheet",
+              type = "warning"
+            )
+            
+            return(NULL)
+            
+          }
+          
+        }
+        
+    })
+    
+    filedata_sql <- reactive({
+      
+      if (input$run_sql_tr==0) {
+        return(NULL)
+      }
+      
+      con <- try(dbConnect(
+        RMySQL::MySQL() # Construct SQL driver
+        ,dbname = input$db_sql
+        ,host = input$host_sql
+        ,port = as.numeric(input$port_sql)
+        ,user = input$user_sql
+        ,password = input$pw_sql
+      ))
+
+      if (class(con)[1]=="try-error") {
+
+        show_alert(
+          title = "Warning",
+          text = "Incorrect Query",
+          type = "warning"
+        )
+
+        return(NULL)
+        
+      } else {
+        
+        con <- dbConnect(
+          RMySQL::MySQL() # Construct SQL driver
+          ,dbname = input$db_sql
+          ,host = input$host_sql
+          ,port = as.numeric(input$port_sql)
+          ,user = input$user_sql
+          ,password = input$pw_sql
+        )
+        
+      }
+      
+      dbGetQuery(
+        con,
+        input$query_sql_t
+      )
+      
+    })
+    
+    triger_sql <- observeEvent(input$run_sql_tr,{
+      
+      filedata_sql()
+      
     })
     
     filetest <- reactive({
+      
         infile <- input$file_test
+        infile2 <- input$test_g
         # User has not uploaded a file yet
-        if (is.null(infile)){
-            return(NULL)
+        if (is.null(infile) & infile2==""){
+          return(NULL)
         }
-        fread(infile$datapath, integer64 = "numeric",data.table = F) 
+        
+        if (!is.null(infile)) {
+          
+          if (grepl(".csv|.txt", infile$datapath) == TRUE) {
+            
+            return(fread(infile$datapath, integer64 = "numeric",data.table = F)) # datapath es lo que devuelve input$file
+            
+          } else if (grepl(".xlsx|.xls", infile$datapath) == TRUE) {
+            
+            return(read_excel(infile$datapath))
+            
+          } else {
+            
+            show_alert(
+              title = "The file must be csv/txt/xlsx/xls",
+              type = "warning"
+            )
+            
+            return(NULL)
+            
+          }
+          
+        }
+        
+        if (infile2 != "") {
+          
+          if (!is.null(infile)) {
+            
+            show_alert(
+              title = "Reload: Other data is loaded.",
+              type = "warning"
+            )
+            
+          } else if (grepl("spreadsheet", infile2) == TRUE) {
+            
+            gs4_auth(cache = FALSE)
+            return(read_sheet(infile2,na = c("", " ", "NA", "na", "null", "NULL", "Na")))
+            
+          } else {
+            
+            show_alert(
+              title = "Must be a spreadsheet",
+              type = "warning"
+            )
+            
+            return(NULL)
+            
+          }
+          
+        }
+        
     })
     
     # TARGET + SELECTING OPTIMAL TARGETS
     observe({
         df <- filedata()
+        z <- filedata_sql()
+        if (!is.null(z)) {
+          df <- z
+        }
         if (is.null(df)){
             return(NULL)
         }
@@ -548,12 +991,31 @@ server <- function(input, output, session) {
     
     # OBSERVE MODEL FOR PREDICTION
     observe({
+      
+      df <- filedata()
+      z <- filedata_sql()
+      if (!is.null(z)) {
+        df <- z
+      }
+      if (is.null(df)){
+        return(NULL)
+      }
+      
       updateSelectInput(session,"select_model", choices =  input$pick_model) 
+      updateProgressBar(session, id="p1", value = 100, title = "Loaded", status = "success")
+      updateProgressBar(session, id="p2", value = 100, title = "Loaded", status = "success")
+      updateProgressBar(session, id="p3", value = 100, title = "Loaded", status = "success")
+      updateProgressBar(session, id="p4", value = 100, title = "Loaded", status = "success")
+      
     })
     
     vtreat <- eventReactive(input$vtreat,{
         
         df <- filedata()
+        z <- filedata_sql()
+        if (!is.null(z)) {
+          df <- z
+        }
         if (is.null(df)) {
             return(NULL)
         }
@@ -565,7 +1027,7 @@ server <- function(input, output, session) {
             
             ifelse(x %in% c("","NA","N/A","Unknown","unknown","missing", "Missing", "?", "na", " ", "n/a"), NA, x)
             
-        })
+        }) 
         
         df <- df %>% as.data.frame()
         
@@ -573,7 +1035,7 @@ server <- function(input, output, session) {
 
           ifelse(x %in% c("","NA","N/A","Unknown","unknown","missing", "Missing", "?", "na", " ", "n/a"), NA, x)
 
-        })
+        }) 
         
         test <- test %>% as.data.frame()
         
@@ -582,12 +1044,12 @@ server <- function(input, output, session) {
         
         targetLevels <- length(unique(df[,"target"]))
         
-        r <- recipe(target~., data = df) %>% 
-          step_YeoJohnson(all_numeric(),-all_outcomes()) 
-        
-        df <- r %>% prep %>% juice() %>% as.data.frame()
-        
-        test <- r %>% prep %>% bake(test) %>% as.data.frame()
+        # r <- recipe(target~., data = df) %>% 
+        #   step_YeoJohnson(all_numeric(),-all_outcomes()) 
+        # 
+        # df <- r %>% prep %>% juice() %>% as.data.frame()
+        # 
+        # test <- r %>% prep %>% bake(test) %>% as.data.frame()
         
         
         if (targetLevels > 10) {
@@ -613,7 +1075,7 @@ server <- function(input, output, session) {
                 varlist = list,
                 outcomename = "target",
                 collarProb = .03, doCollar = input$outliers
-            )
+            ) %>% withProgress()
             df_treat <- treatments$crossFrame
             df_treat_fs <- select(df_treat,-target)[,treatments$treatments$scoreFrame$recommended]
             df_treat_fs$Target <- df_treat[,"target"]
@@ -643,7 +1105,7 @@ server <- function(input, output, session) {
                 outcomename = "target",
                 outcometarget = df[,"target"][[2]],
                 collarProb = .03, doCollar = input$outliers
-            )
+            )%>% withProgress()
             df_treat <- treatments$crossFrame
             df_treat_fs <- select(df_treat,-target)[,treatments$treatments$scoreFrame$recommended]
             df_treat_fs$Target <- df_treat[,"target"]
@@ -667,7 +1129,10 @@ server <- function(input, output, session) {
     observe_upload_preprocess <- observe({                           ### Warning if data it's not upload ###
         
         df <- filedata()
-        
+        z <- filedata_sql()
+        if (!is.null(z)) {
+          df <- z
+        }
         if (is.null(df) & input$vtreat>0) {
 
             return(
@@ -683,7 +1148,10 @@ server <- function(input, output, session) {
     activate_Preprocess <- observeEvent(input$vtreat,{                                      ### Activate preprocess ###
         
         df <- filedata()
-        
+        z <- filedata_sql()
+        if (!is.null(z)) {
+          df <- z
+        }
         if (is.null(df)) {
             return(NULL)
         }
@@ -703,61 +1171,24 @@ server <- function(input, output, session) {
             )
         }
     })
-    
-    # observe_validation <- observeEvent(input$process_train,{                           ### Warning if data it's not upload ###
-    #     
-    #     df <- filedata()
-    #     t <- vtreat()$treatments
-    #     
-    #     if (is.null(df) & input$process_train >0) {
-    #         
-    #         return(
-    #             show_alert(
-    #                 title = "Upload Data First!",
-    #                 type = "warning"
-    #             )
-    #         )
-    #     } else if (!is.null(df) & is.null(t) & input$process_train >0 ){
-    #         
-    #         return(
-    #             show_alert(
-    #                 title = "Preprocess Data First!",
-    #                 type = "warning"
-    #             )
-    #         )
-    #         
-    #     }
-    #     
-    # })
-    
-    warning <- observe({
-      
-      treatments <- vtreat()$treatments
-      
-      if (is.null(treatments)&input$process_train>0) {
+  
+    validation <- eventReactive(input$process_train,{
+
+        df_treat_fs <- vtreat()$df_treat_fs
+        targetLevels <- vtreat()$targetLevels
+        df <- filedata()
+        z <- filedata_sql()
+        if (!is.null(z)) {
+          df <- z
+        }
         
-        return(
+        if (is.null(df_treat_fs)|is.null(df)) {
           show_alert(
             title = "Preprocess data first!",
             type = "warning"
           )
-        )
-      }
-      
-    })
-    
-    
-    validation <- eventReactive(input$process_train,{
-      
-        df <- filedata()
-        if (is.null(df)) {
-            return(NULL)
+          stop()
         }
-        
-        df_treat_fs <- vtreat()$df_treat_fs
-        targetLevels <- vtreat()$targetLevels
-        
-        showModal(modalDialog("Fitting Models" ,fade = TRUE, size = "l", footer = "1-30 mins"))
         
         set.seed(123)
         trControl <- trainControl(
@@ -766,7 +1197,7 @@ server <- function(input, output, session) {
             index = createFolds(df_treat_fs$Target, k =input$cv),
             allowParallel = TRUE,
             verboseIter = FALSE
-        )
+        ) %>% withProgress()
 
         xgbTreeGrid <- expand.grid(
             nrounds = 50,
@@ -813,16 +1244,16 @@ server <- function(input, output, session) {
 
 
         l <- list(
-          XGB    = caretModelSpec(method = "xgbTree", tuneGrid = xgbTreeGrid),
+          XGB    = caretModelSpec(method = "xgbTree", tuneGrid = xgbTreeGrid, preProcess = c("YeoJohnson")),
           Lasso = caretModelSpec(method = "glmnet", tuneGrid = lassoGrid),
-          Ridge = caretModelSpec(method = "glmnet", tuneGrid = ridgeGrid),
+          Ridge = caretModelSpec(method = "glmnet", tuneGrid = ridgeGrid, preProcess = c("YeoJohnson")),
           ElasticNet = caretModelSpec(method = "glmnet", tuneGrid = elasticNetGrid),
           LinearModel = caretModelSpec(method = "glmnet", tuneGrid = linearGrid),
           RandomForest = caretModelSpec(method = "ranger", tuneGrid = rfGrid),
           Tree = caretModelSpec(method = "rpart"),
-          SVM = caretModelSpec(method = "svmRadial", tune_grid = svmGrid),
+          SVM = caretModelSpec(method = "svmRadial", tune_grid = svmGrid, preProcess = c("center","scale")),
           KNN   = caretModelSpec(method = "knn", tuneGrid = knnGrid,  preProcess = c("center","scale"))
-        )
+        )%>% withProgress()
         
 
         l_m <- list(
@@ -830,7 +1261,7 @@ server <- function(input, output, session) {
           RandomForest     = caretModelSpec(method = "ranger", tuneGrid = rfGrid, num.trees=150),
           Tree = caretModelSpec(method = "rpart"),
           SVM = caretModelSpec(method = "svmRadial", tune_grid = svmGrid, preProcess = c("center","scale"))
-        )
+        )%>% withProgress()
 
       
         if (targetLevels == 2 | targetLevels > 10) {
@@ -857,11 +1288,11 @@ server <- function(input, output, session) {
             }
             
             set.seed(123)
-            modelList <- caretList(
+            withProgress(modelList <- caretList(
                 Target ~ ., data = df_treat_fs,
                 trControl = trControl,
                 tuneList = l
-            )
+            ))
         
         }
         
@@ -891,8 +1322,6 @@ server <- function(input, output, session) {
             )
         }
         
-        removeModal()
-        
         show_alert(
             title = "Success",
             text = "All in order",
@@ -906,6 +1335,7 @@ server <- function(input, output, session) {
 
     })
     
+    
                                 #########################################################################################################################################################
                                 ######################################################################## OUTPUTS ########################################################################
                                 #########################################################################################################################################################
@@ -913,7 +1343,10 @@ server <- function(input, output, session) {
     output$rows <- renderValueBox({
         
         df <- filedata()
-        
+        z <- filedata_sql()
+        if (!is.null(z)) {
+          df <- z
+        }
         valueBox(
             value = if (is.null(df)) {h4("Nº Rows")} else {nrow(df)}
             ,subtitle = "Rows"
@@ -926,7 +1359,10 @@ server <- function(input, output, session) {
     output$columns <- renderValueBox({
         
         df <- filedata()
-        
+        z <- filedata_sql()
+        if (!is.null(z)) {
+          df <- z
+        }
         valueBox(
             value = if (is.null(df)) {h4("Nº Columns")} else {ncol(df)}
             ,subtitle = "Columns"
@@ -939,7 +1375,10 @@ server <- function(input, output, session) {
     output$missing <- renderValueBox({
         
         df <- filedata()
-        
+        z <- filedata_sql()
+        if (!is.null(z)) {
+          df <- z
+        }
         valueBox(
             value = if (is.null(df)) {h4("Nº NA")} else {sum(is.na(df))}
             ,subtitle = "Missing Values"
@@ -952,7 +1391,10 @@ server <- function(input, output, session) {
     output$numeric <- renderValueBox({
         
         df <- filedata()
-        
+        z <- filedata_sql()
+        if (!is.null(z)) {
+          df <- z
+        }
         valueBox(
             value = if (is.null(df)) {h4("Nº Num")} else {ncol(Filter(is.numeric,df))}
             ,subtitle = "Numeric"
@@ -965,7 +1407,10 @@ server <- function(input, output, session) {
     output$character <- renderValueBox({
         
         df <- filedata()
-        
+        z <- filedata_sql()
+        if (!is.null(z)) {
+          df <- z
+        }
         valueBox(
             value = if (is.null(df)) {h4("Nº Char")} else {ncol(Filter(is.character,df))} 
             ,subtitle = "Character"
@@ -978,7 +1423,10 @@ server <- function(input, output, session) {
     output$dates <- renderValueBox({
         
         df <- filedata()
-        
+        z <- filedata_sql()
+        if (!is.null(z)) {
+          df <- z
+        }
         valueBox(
             value = if (is.null(df)) {h4("Nº Dates")} else {ncol(Filter(is.Date,df))}
             ,subtitle = "Dates"
@@ -991,6 +1439,10 @@ server <- function(input, output, session) {
     output$input_file <- renderTable({                                                          ### 2. INPUT: variable_class ###
         
         df <- filedata()
+        z <- filedata_sql()
+        if (!is.null(z)) {
+          df <- z
+        }
         if (is.null(df)) {
             df <- iris
             df$Species <- as.character(df$Species)
@@ -1009,6 +1461,10 @@ server <- function(input, output, session) {
     output$input_file_html <- renderDataTable({                                                     ### 3. OUTPUT: input_file_html ###
         
         df <- filedata()
+        z <- filedata_sql()
+        if (!is.null(z)) {
+          df <- z
+        }
         if (is.null(df)) {
             df <- iris
         }
@@ -1028,6 +1484,10 @@ server <- function(input, output, session) {
     output$na <- renderPlot({                                                                         ### 5. Output: na ###
         
         df <- filedata()
+        z <- filedata_sql()
+        if (!is.null(z)) {
+          df <- z
+        }
         if (is.null(df)) {
             return(readRDS("rds/na.RDS"))
         }
@@ -1051,6 +1511,10 @@ server <- function(input, output, session) {
     output$target_plotly <- renderPlotly({                                                      ### 6. target_plotly
         
         df <- filedata()
+        z <- filedata_sql()
+        if (!is.null(z)) {
+          df <- z
+        }
         if (is.null(df)) { 
             return(readRDS("rds/target_plotly.RDS"))
         }
@@ -1078,6 +1542,10 @@ server <- function(input, output, session) {
     output$histograms <- renderPlot({                                                                ### 7. OUTPUT: histograms ###
         
         df <- filedata()
+        z <- filedata_sql()
+        if (!is.null(z)) {
+          df <- z
+        }
         if (is.null(df)) {
             return(readRDS("rds/hist.RDS"))
         }
@@ -1094,6 +1562,10 @@ server <- function(input, output, session) {
     output$boxplots <- renderPlot({                                                                ### 8. OUTPUT: boxplots ###
         
         df <- filedata()
+        z <- filedata_sql()
+        if (!is.null(z)) {
+          df <- z
+        }
         if (is.null(df)) {
             return(readRDS("rds/boxplot.RDS"))
         }
@@ -1132,6 +1604,10 @@ server <- function(input, output, session) {
     output$bars <- renderPlot({                                                                ### 10. OUTPUT: bars ###
         
         df <- filedata()
+        z <- filedata_sql()
+        if (!is.null(z)) {
+          df <- z
+        }
         if (is.null(df)) {
             return(readRDS("rds/barplot.RDS"))
         }
@@ -1159,6 +1635,10 @@ server <- function(input, output, session) {
     output$bars_bi <- renderPlot({                                                                 ### 11. OUTPUT: bars_bi ###
         
         df <- filedata()
+        z <- filedata_sql()
+        if (!is.null(z)) {
+          df <- z
+        }
         if (is.null(df)) {
             return(readRDS("rds/barplot_bi.RDS"))
         }
@@ -1193,6 +1673,10 @@ server <- function(input, output, session) {
     output$cardinality <- renderPlot({                                                        ### 12. OUTPUT: cardinality ###
         
         df <- filedata()
+        z <- filedata_sql()
+        if (!is.null(z)) {
+          df <- z
+        }
         if (is.null(df)) {
             return(readRDS("rds/cardinality.RDS"))
         }
@@ -1205,15 +1689,30 @@ server <- function(input, output, session) {
     output$corr <- renderPlot({                                                                 ### 13. OUTPUT: corr ###
         
         df <- filedata()
+        z <- filedata_sql()
+        if (!is.null(z)) {
+          df <- z
+        }
         if (is.null(df)) {
             return(readRDS("rds/corr.RDS"))
         }
         
-        plot_correlation(
+        numeric <- ncol(df) 
+        
+        if (numeric > 40) {
+          plot_correlation(
+            na.omit(df[,sample(1:ncol(df),size = 40)]),
+            maxcat = 10,
+            ggtheme = theme_plex
+          ) 
+        } else {
+          plot_correlation(
             na.omit(df),
             maxcat = 10,
             ggtheme = theme_plex
-        ) 
+          ) 
+        }
+      
         
         
     })
@@ -1221,6 +1720,10 @@ server <- function(input, output, session) {
     output$value_target <- renderUI({
         
         df <- filedata()
+        z <- filedata_sql()
+        if (!is.null(z)) {
+          df <- z
+        }
         if (is.null(df)) {
             return(NULL)
         }
@@ -1329,25 +1832,24 @@ server <- function(input, output, session) {
     })
     
     show_pred <- observe({
-      
+
       test <- filetest()
       
+
       if (input$predict>0 & is.null(test)) {
-        
-        return(
-          show_alert(
-            title = "Upload Test First!",
-            type = "warning"
-          )
+        show_alert(
+          title = "Upload Test First!",
+          type = "warning"
         )
-        
+        return(stop)
+
       } else if (input$predict>0 & input$process_train >0) {
         showModal(modalDialog("Computing predictions." ,fade = TRUE, size = "l", footer = NULL))
         pred()$pred
         Sys.sleep(2)
         removeModal()
       }
-      
+
     })
     
     pred <- eventReactive(input$predict,{
@@ -1356,6 +1858,10 @@ server <- function(input, output, session) {
         treatments <- vtreat()$treatments
         test <- vtreat()$test
         df <- filedata()
+        z <- filedata_sql()
+        if (!is.null(z)) {
+          df <- z
+        }
         df_treat_fs <- vtreat()$df_treat_fs
         modelList <- validation()$modelList
         ll <- validation()$ll
@@ -1365,7 +1871,10 @@ server <- function(input, output, session) {
         
     
         
-        if (is.null(treatments) | is.null(test)) {return(NULL)}
+        if (is.null(treatments) | is.null(test)) {
+          return(NULL)
+        
+          }
         
         # if (input$predict > 0) {
         #     showModal(modalDialog("Predicting" ,fade = TRUE, size = "l", footer = "Less than 15 sec"))
@@ -1523,6 +2032,142 @@ server <- function(input, output, session) {
             write.csv(pred()$pred, files, row.names = F)
         }
     )
+    
+    output$ranger_importance <- renderPlotly({
+      
+      df <- filedata()
+      z <- filedata_sql()
+      if (!is.null(z)) {
+        df <- z
+      }
+      if(is.null(df)) {
+        return(NULL)
+      }
+      
+      df[, "Target"] <- df[,input$target]
+      df[,input$target] <- NULL
+      
+      importance_measure <- "impurity"
+      
+      split_rule <- "gini"
+      
+      if (length(unique(df$Target))>10) {
+        importance_measure <- "permutation"
+        split_rule <- "variance"
+      }
+      
+      names(df) <- make.names(names(df))
+      
+      
+      isna <- sapply(df, function(x, df) {
+        sum(is.na(x))/nrow(df)
+      },df)
+      
+      l_na <- which(isna>.3) %>% length()
+      
+      if (l_na>0) {
+        
+        remove <- which(isna>.3) %>% names()
+        
+        df <- select(df, -all_of(remove))
+        
+      }
+      
+      rf_var_imp <- ranger(
+        Target~.
+        ,data = na.omit(df)
+        ,num.trees = 50
+        ,importance = importance_measure
+      )
+      
+      imp <- as.data.frame(ranger::importance(rf_var_imp))
+      imp$Variable <- rownames(imp)
+      names(imp)[1] <- c("Importance")
+      rownames(imp) <- NULL
+      
+      g <- ggplot(imp, aes(reorder(Variable, Importance), Importance, fill=Importance)) + 
+        geom_col() + 
+        coord_flip() +
+        labs(x=NULL)
+      
+      ggplotly(g)
+      
+    })
+    
+    output$ranger_outliers <- renderPlot({
+      
+      df <- filedata()
+      z <- filedata_sql()
+      if (!is.null(z)) {
+        df <- z
+      }
+      if(is.null(df)) {
+        return(NULL)
+      }
+      
+      df[, "Target"] <- df[,input$target]
+      df[,input$target] <- NULL
+      
+      importance_measure <- "impurity"
+      
+      split_rule <- "gini"
+      
+      if (length(unique(df$Target))>10) {
+        importance_measure <- "permutation"
+        split_rule <- "variance"
+      }
+      
+      names(df) <- make.names(names(df))
+      
+      
+      isna <- sapply(df, function(x, df) {
+        sum(is.na(x))/nrow(df)
+      },df)
+      
+      l_na <- which(isna>.2) %>% length()
+      
+      if (l_na>0) {
+        
+        remove <- which(isna>.2) %>% names()
+        
+        df <- select(df, -all_of(remove))
+        
+      }
+      
+      rf_var_imp <- ranger(
+        Target~.
+        ,data = na.omit(df)
+        ,num.trees = 50
+        ,importance = importance_measure
+      )
+      
+      tmp1 <-  na.omit(df) %>% 
+        mutate(
+          Predicted = predict(rf_var_imp, na.omit(df))[[1]],
+          Residual = Target - Predicted,
+          out = abs(Residual) > quantile(abs(Residual), .9975),
+          Id = 1:nrow(na.omit(df))  
+        ) %>% 
+        select(Id, Target, Predicted, Residual, out)
+  
+      p1 <- ggplot(tmp1, aes(x = Predicted, y = Residual, col = out, label = Id)) +
+        geom_point(size = 2, alpha = .7, show.legend = FALSE) + 
+        # geom_rug(sides = "r", outside = TRUE) +
+        # coord_cartesian(clip = "off") +
+        scale_color_viridis_d(end = .7, direction = -1) +
+        ggrepel::geom_label_repel(
+          data = filter(tmp1, out == 1), show.legend = FALSE) 
+      
+      p2 <- ggplot(tmp1, aes(x = Residual)) +
+        geom_histogram() +
+        theme_void() + 
+        coord_flip()
+      
+      
+      p1 + p2 + plot_layout(nrow = 1, widths = c(3, 1))
+      
+  
+    })
 
     
 }

@@ -5,7 +5,7 @@ library(shinycssloaders)
 library(data.table)
 library(skimr)
 library(DataExplorer)
-library(ada)
+library(ggrepel)
 library(ggplot2)
 library(plotly)
 library(lubridate)
@@ -22,9 +22,13 @@ library(stringr)
 library(ranger)
 library(xgboost)
 library(glmnet)
+library(patchwork)
 library(e1071 )
 library(shinyWidgets)
 library(recipes)
+library(readxl)
+library(RMySQL)
+library(googlesheets4)
 
 withConsoleRedirect <- function(containerId, expr) {
   # Change type="output" to type="message" to catch stderr
@@ -380,3 +384,9 @@ missVtreatRanger <- function(train, val, test=NULL, originalTarget) {
   return(list(tr, vl, test))
   
 }
+
+
+pred <- read.csv("C:/Users/Manu/Downloads/prediction (3).csv")
+sub <- read.csv("C:/Users/Manu/Github/house_prices/sample_submission.csv")
+sub$SalePrice<- pred$x
+write.csv(sub, "./sub_houses.csv", row.names = F)
