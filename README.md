@@ -13,3 +13,11 @@ https://www.kaggle.com/c/house-prices-advanced-regression-techniques/overview
 
 ![](/img/kagglepng.png)
 
+![](/img/prep.png)
+
+![](/img/eda.png)
+
+![](/img/fi.png)
+
+![](/img/ml.png)
+
