@@ -1,7 +1,9 @@
 library(shiny)
+library(shinyjs)
 library(shinydashboard)
 library(shinydashboardPlus)
-library(shinycssloaders)
+library(shinycssloaders) 
+library(shinymanager)
 library(data.table)
 library(skimr)
 library(DataExplorer)
@@ -13,7 +15,6 @@ library(ggthemes)
 library(dplyr)
 library(tidyr)
 library(purrr)
-library(shinyjqui)
 library(inspectdf)
 library(caret)
 library(caretEnsemble)
@@ -29,7 +30,14 @@ library(recipes)
 library(readxl)
 library(RMySQL)
 library(googlesheets4)
+library(htmltools)
+library(kernlab)
+library(rmarkdown)
+library(recipes)
+library(parallel)
 
+
+#rf_var_imp <- NULL
 withConsoleRedirect <- function(containerId, expr) {
   # Change type="output" to type="message" to catch stderr
   # (messages, warnings, and errors) instead of stdout.
@@ -41,14 +49,65 @@ withConsoleRedirect <- function(containerId, expr) {
   }
   results
 }
+# 
+# 
+# credentials <- data.frame(
+#   user = c("R4msesII", "1"),
+#   password = c("ramses", "2"),
+#   stringsAsFactors = FALSE
+# )
 
+
+`%AND%` <- function (x, y) {
+  if (!is.null(x) && !anyNA(x))
+    if (!is.null(y) && !anyNA(y))
+      return(y)
+  return(NULL)
+}
+passwordInputAddon <- function (inputId, label, value = "", placeholder = NULL, addon, width = NULL)
+{
+  value <- shiny::restoreInput(id = inputId, default = value)
+  htmltools::tags$div(
+    class = "form-group shiny-input-container",
+    label %AND% htmltools::tags$label(label, `for` = inputId),
+    style = if (!is.null(width)) paste0("width: ", htmltools::validateCssUnit(width), ";"),
+    htmltools::tags$div(
+      style = "margin-bottom: 5px;", class="input-group",
+      addon %AND% htmltools::tags$span(class="input-group-addon", addon),
+      htmltools::tags$input(
+        id = inputId, type = "password", class = "form-control",
+        value = value, placeholder = placeholder
+      )
+    )
+  )
+}
+
+inactivity <- "function idleTimer() {
+var t = setTimeout(logout, 120000);
+window.onmousemove = resetTimer; // catches mouse movements
+window.onmousedown = resetTimer; // catches mouse movements
+window.onclick = resetTimer;     // catches mouse clicks
+window.onscroll = resetTimer;    // catches scrolling
+window.onkeypress = resetTimer;  //catches keyboard actions
+
+function logout() {
+window.close();  //close the window
+}
+
+function resetTimer() {
+clearTimeout(t);
+t = setTimeout(logout, 120000);  // time is in milliseconds (1000 is 1 second)
+}
+}
+idleTimer();"
 
 Mode <- function(x) {
   ux <- unique(na.omit(x))
   ux[which.max(tabulate(match(x, ux)))]
 }
 
-theme_plex <- theme_set(theme_minimal() + theme(plot.title = element_text(hjust = 0.4)))
+theme_plex <- theme_set(theme_minimal() + theme(plot.title = element_text(hjust = 0.5)))
+#theme_set(theme_minimal() + theme(plot.title = element_text(hjust = 0.5)))
 
 colors <- c("dodgerblue", "coral", "salmon", "yellow")
 
@@ -121,31 +180,6 @@ plot_bar_all <- function(data, group, with = NULL, maxcat = 50, order_bar = TRUE
     )
   )
 }
-
-info_card <- function(title, value, sub_value = NULL,
-                      main_icon = "chart-line", sub_icon = "arrow-up",
-                      bg_color = "default", text_color = "default", 
-                      sub_text_color = "success") {
-  
-  div(
-    class = "panel panel-default",
-    style = "padding: 0px;",
-    div(
-      class = str_glue("panel-body bg-{bg_color} text-{text_color}"),
-      p(class = "pull-right", icon(class = "fa-4x", main_icon)),
-      h4(title),
-      h5(value),
-      p(
-        class = str_glue("text-{sub_text_color}"),
-        icon(sub_icon),
-        tags$small(sub_value)
-      )
-    )
-  )
-  
-}
-
-
 
 
 missVtreatRanger <- function(train, val, test=NULL, originalTarget) {
@@ -385,8 +419,3 @@ missVtreatRanger <- function(train, val, test=NULL, originalTarget) {
   
 }
 
-
-pred <- read.csv("C:/Users/Manu/Downloads/prediction (3).csv")
-sub <- read.csv("C:/Users/Manu/Github/house_prices/sample_submission.csv")
-sub$SalePrice<- pred$x
-write.csv(sub, "./sub_houses.csv", row.names = F)

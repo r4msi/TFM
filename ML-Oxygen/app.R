@@ -1,14 +1,15 @@
 source("./helpers.R")
 
-# library(doParallel)
-# doParallel::registerDoParallel()
-#doParallel::stopImplicitCluster()
+ncores <- parallel::detectCores()
+parallelCluster <- parallel::makeCluster(ncores-1) # For Vtreat
+doParallel::registerDoParallel() # For Caret 
+
+
 
 
 ##############
 ### HEADER ###
 ##############
-
 
 header <- dashboardHeaderPlus(
     
@@ -27,7 +28,8 @@ header <- dashboardHeaderPlus(
 sidebar <- dashboardSidebar(
     
     sidebarMenu(
-        menuItem(
+        id = "tabs"
+        ,menuItem(
           text= "Data"
           ,tabName = "data"
           ,icon = icon("database")
@@ -43,14 +45,14 @@ sidebar <- dashboardSidebar(
             ,icon = icon("paint-brush")
         )
         ,menuItem(
-            text = "ML"
-            ,tabName = "ml"
-            ,icon = icon("rocket")
-        )
-        ,menuItem(
           text = "Feature Importance"
           ,tabName = "fi"
           ,icon = icon("star")
+        )
+        ,menuItem(
+            text = "ML"
+            ,tabName = "ml"
+            ,icon = icon("rocket")
         )
         
     )
@@ -75,59 +77,7 @@ body <- dashboardBody(
             tabName = "data"
             ,fluidRow(
               column(
-                width = 4
-                ,boxPlus(
-                  title = "Workflow",
-                  status = "info",
-                  width = 12,
-                  collapsible = T,
-                  closable = F,
-                  timelineBlock(
-                    timelineEnd(color = "danger"),
-                    timelineLabel("First", color = "teal"),
-                    timelineItem(
-                      title = "Load Data",
-                      icon = "database",
-                      color = "olive",
-                      "Upload txt/csv/excel files, google sheets or connect to SQL."
-                    ),
-                    timelineLabel("Second", color = "orange"),
-                    timelineItem(
-                      title = "Explore the basics stats",
-                      icon = "poll-h",
-                      color = "maroon",
-                      "Data dimensions, maximum, minimum, mean, cardinality... is the data integrity correct?",
-                    ),
-                    timelineLabel("Third", color = "blue"),
-                    timelineItem(
-                      title = "Explore the EDA",
-                      icon = "paint-brush",
-                      color = "black",
-                      "Observe variables' distribution, correlations, missing values for a better data understaning."
-                    ),
-                    timelineLabel("Fourth", color = "green"),
-                    timelineItem(
-                      title = "Preprocess & Model & Predict",
-                      icon = "rocket",
-                      color = "yellow",
-                      "Impute missing values, transform variables, create new bayesian variables and perform feature selection.
-                      Compare different algorithms using cross validation: Shrinkage methods, support vector machines, boosting, ensemble learning...
-                      Select the best model & tune it up. If you have test data, make predictions, otherwise, save the model.
-                      "
-                    ),
-                    timelineLabel("Fifth", color = "purple"),
-                    timelineItem(
-                      title = "Observe Outliers & Feature Importance",
-                      icon = "star",
-                      color = "navy",
-                      "Observes the variables that reduced the error the most in a random forest and the atypical observations."
-                    ),
-                    timelineStart(color = "gray")
-                  )
-                )
-              )
-              ,column(
-                width = 4
+                width = 6
                 ,flipBox(
                   id = 1,
                   main_img = "https://image.flaticon.com/icons/svg/888/888900.svg",
@@ -141,8 +91,9 @@ body <- dashboardBody(
                   br(),
                   br(),
                   br(),
-                  progressBar(id="p1", value = 1, striped = T, title = "Not Uploaded", status = "danger"),
+                  progressBar(id="p1", value = 1, striped = T, title = "Train Not Uploaded", status = "danger"),
                   br(),
+                  progressBar(id="t1", value = 1, striped = T, title = "Test Not Uploaded (optional)", status = "danger"),
                   back_content = tagList(
                       br(),
                       box(
@@ -175,8 +126,9 @@ body <- dashboardBody(
                   br(),
                   br(),
                   br(),
-                  progressBar(id="p3", value = 1, striped = T, title = "Not Uploaded", status = "danger"),
+                  progressBar(id="p3", value = 1, striped = T, title = "Train Not Uploaded", status = "danger"),
                   br(),
+                  progressBar(id="t3", value = 1, striped = T, title = "Test Not Uploaded (optional)", status = "danger"),
                   back_content = tagList(
                     column(
                       width = 6,
@@ -217,11 +169,11 @@ body <- dashboardBody(
                         addon = icon("user"),
                         placeholder = "username"
                       )
-                      ,textInputAddon( 
+                      ,passwordInputAddon(
                         inputId = "pw_sql",
                         label = "Password",
                         addon = icon("key"),
-                        placeholder = "******"
+                        placeholder = "*******"
                       )
                       ,textInputAddon( 
                         inputId = "driver_sql",
@@ -244,7 +196,7 @@ body <- dashboardBody(
                 )
               )
               ,column(
-                width = 4
+                width = 6
                 ,flipBox(
                   id = 2,
                   main_img = "https://image.flaticon.com/icons/svg/281/281778.svg",
@@ -258,8 +210,9 @@ body <- dashboardBody(
                   br(),
                   br(),
                   br(),
-                  progressBar(id="p2", value = 1, striped = T, title = "Not Uploaded", status = "danger"),
+                  progressBar(id="p2", value = 1, striped = T, title = "Train Not Uploaded", status = "danger"),
                   br(),
+                  progressBar(id="t2", value = 1, striped = T, title = "Test Not Uploaded (optional)", status = "danger"),
                   back_content = tagList(
                     column(
                       width = 12,
@@ -294,7 +247,7 @@ body <- dashboardBody(
                 ,br()
                 ,flipBox(
                   id = 4,
-                  main_img = "https://image.flaticon.com/icons/svg/1051/1051275.svg",
+                  main_img = "https://www.flaticon.es/svg/static/icons/svg/1051/1051275.svg",
                   header_img = "https://image.flaticon.com/icons/svg/119/119597.svg",
                   front_title = "Github",
                   front_btn_text = "GO",
@@ -305,12 +258,40 @@ body <- dashboardBody(
                   br(),
                   br(),
                   br(),
-                  progressBar(id="p4", value = 1, striped = T, title = "Not Uploaded", status = "danger"),
+                  progressBar(id="p4", value = 1, striped = T, title = "Train Not Uploaded", status = "danger"),
                   br(),
+                  progressBar(id="t4", value = 1, striped = T, title = "Test Not Uploaded (optional)", status = "danger"),
                   back_content = tagList(
                     column(
                       width = 12,
-                      align = "center")
+                      align = "center",
+                      br(),
+                      br(),
+                      br(),
+                      boxPlus(
+                        width = 12
+                        ,title = "URL"
+                        ,status = "danger"
+                        ,solidHeader = T
+                        ,closable = F
+                        ,textInputAddon( 
+                          inputId = "train_git",
+                          label = "Train",
+                          value = "",
+                          placeholder = "https://raw.githubusercontent.com/r4msi/LSTM_Ozone/master/ozone.csv",
+                          addon = icon("link")
+                        ),
+                        textInputAddon(
+                          inputId = "test_git",
+                          label = "Test",
+                          value = "",
+                          placeholder = "https://raw.githubusercontent.com/r4msi/LSTM_Ozone/master/ozone.csv",
+                          addon = icon("link")
+                        )
+                      )
+                      
+                    
+                    )
                       
                   )
                 )
@@ -327,6 +308,7 @@ body <- dashboardBody(
                                 div.box-header {
                                   text-align: center;
                                 }
+                                
                                 "))),
             
             tabName = "stats"
@@ -367,25 +349,25 @@ body <- dashboardBody(
                     ,width = 12
                     ,closable = F
                     ,enable_label = T
-                    ,label_text = "Change Variable Class"
+                    ,label_text = "Change Train's Variables Class"
                     ,label_status = "success"
                     ,enable_dropdown = TRUE
                     ,dropdown_menu = dropdownItemList(
                         radioButtons(
-                            inputId = "variable_class"                             ### 2. INPUT: variable_class ###
-                            ,label = "Select Class"
-                            ,choices = c("Numeric", "Character", "Dates")
+                          inputId = "variable_class"                             ### 2. INPUT: variable_class ###
+                          ,label = "Select Class"
+                          ,choices = c("Numeric", "Character", "Dates")
                         )
                     )
-                  
                     ,column(
-                        width = 12
-                        ,align = "center"
-                        ,tableOutput("input_file") ### OUTPUT ###
+                      width = 12
+                      ,align = "center"
+                      ,tableOutput("input_file") ### OUTPUT ###
                     )
-              
                 )
-                
+                ,uiOutput(
+                  outputId = "table_test"
+                )
             )
             
             ,fluidRow(
@@ -421,7 +403,7 @@ body <- dashboardBody(
                         align = "center"
                         ,width = 12 
                         ,selectInput(
-                            inputId = "target"                                       ### 3. INPUT: target ###
+                            inputId = "tttarget"                                       ### 3. INPUT: tttarget ###
                             ,label = "Select Target"
                             ,choices = "Upload Data First" # Needs to be populated.
                         )
@@ -436,12 +418,12 @@ body <- dashboardBody(
                         ,status = "success"
                         ,column( # Center buttom
                             align="center"
-                            ,width = 12 # 12 porque esta respecto a Box.             ### 4. OUTPUT: report ### 
+                            ,width = 12 # 12 porque esta respecto a Box.             ### 4. OUTPUT: report ###
                             ,downloadButton(
                                 outputId = "report"
                                 ,label = "Create Report"
                             )
-                            
+
                         )
                     )
                 )
@@ -454,8 +436,9 @@ body <- dashboardBody(
                     ,status = "danger"
                     ,closable = F
                     ,collapsible = T
-                    ,plotOutput(
+                    ,plotlyOutput(
                         outputId = "na"                                          ### 5. OUTPUT: NA ###
+                        
                     ) %>% withSpinner()
                 )
                 ,boxPlus(
@@ -465,7 +448,7 @@ body <- dashboardBody(
                     ,closable = F
                     ,collapsible = T
                     ,plotlyOutput(
-                        outputId = "target_plotly"                                 ### 6. OUTPUT: taRget_plotly ###
+                        outputId = "tttarget_plotly"                                 ### 6. OUTPUT: tttarget_plotly ###
                     ) %>% withSpinner()
                 )
             )
@@ -477,20 +460,16 @@ body <- dashboardBody(
                     ,width = 6
                     ,tabPanel(
                         title = "Histograms"
-                        ,jqui_resizable(
-                            plotOutput(
-                                outputId = "histograms"                             ### 7. OUTPUT: histograms ###
-                                ,height = 600
-                            ) 
+                        ,plotOutput(
+                            outputId = "histograms"                             ### 7. OUTPUT: histograms ###
+                            ,height = "auto"
                         ) %>% withSpinner()
                     )
                     ,tabPanel(
-                        "Bivariate Box-Plots"
-                        ,jqui_resizable(
-                            plotOutput(
-                                outputId = "boxplots"                               ### 8. OUTPUT: boxplots ###
-                                ,height = 600
-                            )
+                        title ="Bivariate Box-Plots"
+                        ,plotOutput(
+                          outputId = "boxplots"                               ### 8. OUTPUT: boxplots ###
+                          ,height = "auto"
                         ) %>% withSpinner()
                     )
                     # ,tabPanel(
@@ -508,29 +487,23 @@ body <- dashboardBody(
                     ,width = 6
                     ,tabPanel(
                         "Bar-Chart"
-                        ,jqui_resizable(
-                            plotOutput(
-                                outputId = "bars"                                  ### 10. OUTPUT: bars ###
-                                ,height = 600
-                            ) 
+                        ,plotOutput(
+                            outputId = "bars"                                  ### 5. OUTPUT: bars ###
+                            ,height = "auto"
                         ) %>% withSpinner()
                     )
                     ,tabPanel(
                         "Bar-Bivariate"
-                        ,jqui_resizable(
-                            plotOutput(
-                                outputId = "bars_bi"                               #### 11. OUTPUT: bars_bi ###
-                                ,height = 600
-                            ) 
+                        ,plotOutput(
+                            outputId = "bars_bi"                               #### 11. OUTPUT: bars_bi ###
+                            ,height = "auto"
                         ) %>% withSpinner()
                     )
                     ,tabPanel(
                         "Cardinality"
-                        ,jqui_resizable(
-                            plotOutput(
-                                outputId = "cardinality"                           ### 12. OUTPUT: cardinality ###
-                                ,height = 600
-                            )
+                        ,plotOutput(
+                            outputId = "cardinality"                           ### 12. OUTPUT: cardinality ###
+                            ,height = "auto"
                         ) %>% withSpinner()
                     )
                 )
@@ -544,11 +517,10 @@ body <- dashboardBody(
                     ,closable = F
                     ,collapsible = T
                     ,collapsed = F
-                    ,jqui_resizable(
-                      plotOutput(
+                    ,plotOutput(
                         outputId = "corr"                               #### 13. OUTPUT: corr ###
-                        ,height = 1200
-                    )) %>% withSpinner()
+                        ,height = 1400
+                    ) %>% withSpinner()
                 )
             )
         )
@@ -570,7 +542,7 @@ body <- dashboardBody(
                         ,status = "success"
                         ,width = 12
                         ,uiOutput(
-                            outputId = "value_target"
+                            outputId = "value_tttarget"
                         )
                         ,boxPlus(
                           title = "Validation"
@@ -648,11 +620,11 @@ body <- dashboardBody(
                               ,label = "Select Models"
                               ,choices = c(
                                 "XGB", "Lasso", "Ridge", "ElasticNet",
-                                "LinearModel", "RandomForest", "Tree",
+                                "LinearModel", "RandomForest",
                                 "SVM","KNN"
                               )
                               ,multiple = T
-                              ,selected = c("XGB","ElasticNet")
+                              ,selected = c("RandomForest","ElasticNet")
                               ,options = list(
                                 `actions-box` = TRUE,
                                 `select-all-text` = "Select All"
@@ -682,7 +654,7 @@ body <- dashboardBody(
                                     ,label = "Select Model"
                                     ,choices = c(
                                       "XGB", "Lasso", "Ridge", "ElasticNet",
-                                      "LinearModel", "RandomForest", "Tree",
+                                      "LinearModel", "RandomForest",
                                       "SVM","KNN"
                                     )
                                 
@@ -716,6 +688,7 @@ body <- dashboardBody(
                         ,width = 12
                         ,solidHeader = T
                         ,status = "primary"
+                        ,closable = F
                         ,plotlyOutput(
                             outputId = "cv_model_results"                                              ### 20. OUTPUT: cv_model_results ###
                         )
@@ -724,6 +697,7 @@ body <- dashboardBody(
                         title = "TEST RESULTS"
                         ,width = 12
                         ,solidHeader = T
+                        ,closable = F
                         ,status = "success"
                         ,plotlyOutput(
                             outputId = "test_models_results"                                                  ### 21. OUTPUT: test_models_results ###
@@ -741,7 +715,7 @@ body <- dashboardBody(
             column(
               width = 12
               ,boxPlus(
-                title = "Feaure Importance"
+                title = "Feature Importance"
                 ,status = "info"
                 ,closable = F
                 ,width = 6
@@ -772,8 +746,12 @@ body <- dashboardBody(
 ### UI ###
 ##########
 
+
+
 ui <- dashboardPagePlus(
-    header
+    enable_preloader = T
+    ,loading_duration = 1
+    ,header
     ,sidebar
     ,body
     ,skin = "black"
@@ -786,76 +764,180 @@ ui <- dashboardPagePlus(
 
 server <- function(input, output, session) {
     
-    options(shiny.maxRequestSize=30*1024^2) # 35 MB
+    showModal(
+      modalDialog(
+        title = "Welcome!",
+        easyClose = TRUE,
+        size = "l",
+        footer = boxPlus(
+          title = "Workflow",
+          status = "info",
+          width = 12,
+          collapsible = T,
+          closable = F,
+          timelineBlock(
+            timelineEnd(color = "danger"),
+            timelineLabel("First", color = "teal"),
+            timelineItem(
+              title = "Load Data",
+              icon = "database",
+              color = "olive",
+              "Upload txt/csv/excel files, google sheets or connect to SQL."
+            ),
+            timelineLabel("Second", color = "orange"),
+            timelineItem(
+              title = "Explore the basics stats",
+              icon = "poll-h",
+              color = "maroon",
+              "Data dimensions, maximum, minimum, mean, cardinality... is the data integrity correct?",
+            ),
+            timelineLabel("Third", color = "blue"),
+            timelineItem(
+              title = "Explore the EDA",
+              icon = "paint-brush",
+              color = "navy",
+              "Observe variables' distribution, correlations, missing values for a better data understaning."
+            ),
+            timelineLabel("Fourth", color = "green"),
+            timelineItem(
+              title = "Observe Outliers & Feature Importance",
+              icon = "star",
+              color = "fuchsia",
+              "Observes the variables that reduced the error the most in a random forest and the atypical observations."
+            ),
+            timelineLabel("Fifth", color = "yellow"),
+            timelineItem(
+              title = "Preprocess & Model & Predict",
+              icon = "rocket",
+              color = "purple",
+              "Impute missing values, transform variables, create new bayesian variables and perform feature selection.
+                      Compare different algorithms using cross validation: Shrinkage methods, support vector machines, boosting, ensemble learning...
+                      Select the best model & tune it up. If you have test data, make predictions, otherwise, save the model.
+                      "
+            ),
+            timelineStart(color = "gray")
+          )
+          ,modalButton("Got it!")
+        )
+      )
+    )
+  
+    options(shiny.maxRequestSize=30*524^3) # 35 MB
     
     # Conventional data #
     filedata <- reactive({
-      
+
         infile <- input$file
         infile2 <- input$train_g
+        infile3 <- input$train_git
+        
         # User has not uploaded a file yet
-        if (is.null(infile) & infile2==""){
+        if (is.null(infile) & infile2=="" & infile3==""){
             return(NULL)
         }
-        
+
         if (!is.null(infile)) {
-          
+
           if (grepl(".csv|.txt", infile$datapath) == TRUE) {
-            
-            return(fread(infile$datapath, integer64 = "numeric",data.table = F)) # datapath es lo que devuelve input$file
-            
+
+            return(fread(
+              infile$datapath,
+              integer64 = "numeric",
+              data.table = F,
+              na.strings = c("", " ", "NA", "N/A", "n/a", "unknown", "Unknown", "missing", "Missing", "na", "null", "NULL", "Na", "nA", "?")
+            ))
+
           } else if (grepl(".xlsx|.xls", infile$datapath) == TRUE) {
-            
-            return(read_excel(infile$datapath))
-            
+
+            return(read_excel(
+              infile$datapath,
+              na = c("", " ", "NA", "N/A", "n/a", "unknown", "Unknown", "missing", "Missing", "na", "null", "NULL", "Na", "nA", "?")
+              )
+            )
+
           } else {
-            
+
             show_alert(
               title = "The file must be csv/txt/xlsx/xls",
               type = "warning"
             )
-            
+
             return(NULL)
-            
+
           }
-          
+
         }
-        
+
         if (infile2 != "") {
-          
+
           if (!is.null(infile)) {
-            
+
             show_alert(
               title = "Reload: Other data is loaded.",
               type = "warning"
             )
-            
+
           } else if (grepl("spreadsheet", infile2) == TRUE) {
-            
+
             gs4_auth(cache = FALSE)
-            return(read_sheet(infile2,na = c("", " ", "NA", "na", "null", "NULL", "Na"),))
-            
+
+            return(read_sheet(
+              infile2,
+              na = c("", " ", "NA", "N/A", "n/a", "unknown", "Unknown", "missing", "Missing", "na", "null", "NULL", "Na", "nA", "?")
+            ))
+
           } else {
-            
+
             show_alert(
               title = "Must be a spreadsheet",
               type = "warning"
             )
-            
+
             return(NULL)
-            
+
           }
-          
+
         }
-        
+
+        if (infile3 != "") {
+
+          if (grepl(".csv|.txt", infile3) == TRUE) {
+
+            return(fread(
+              infile3,
+              integer64 = "numeric",
+              data.table = F,
+              na.strings =  c("", " ", "NA", "N/A", "n/a", "unknown", "Unknown", "missing", "Missing", "na", "null", "NULL", "Na", "nA", "?")
+            ))
+
+          } else if (grepl(".xlsx|.xls", infile3) == TRUE) {
+
+            return(read_excel(
+              infile3,
+              na = c("", " ", "NA", "N/A", "n/a", "unknown", "Unknown", "missing", "Missing", "na", "null", "NULL", "Na", "nA", "?")
+            ))
+
+          } else {
+
+            show_alert(
+              title = "The file must be csv/txt/xlsx/xls",
+              type = "warning"
+            )
+
+            return(NULL)
+
+          }
+
+        }
+
     })
-    
+
     filedata_sql <- reactive({
-      
+ 
       if (input$run_sql_tr==0) {
         return(NULL)
       }
-      
+
       con <- try(dbConnect(
         RMySQL::MySQL() # Construct SQL driver
         ,dbname = input$db_sql
@@ -874,9 +956,9 @@ server <- function(input, output, session) {
         )
 
         return(NULL)
-        
+
       } else {
-        
+
         con <- dbConnect(
           RMySQL::MySQL() # Construct SQL driver
           ,dbname = input$db_sql
@@ -885,132 +967,208 @@ server <- function(input, output, session) {
           ,user = input$user_sql
           ,password = input$pw_sql
         )
-        
+
       }
-      
+
       dbGetQuery(
         con,
         input$query_sql_t
       )
-      
+
     })
+
+    trigger_sql <- observeEvent(input$run_sql_tr,{
     
-    triger_sql <- observeEvent(input$run_sql_tr,{
-      
       filedata_sql()
-      
+
     })
-    
+
     filetest <- reactive({
-      
+
         infile <- input$file_test
         infile2 <- input$test_g
+        infile3 <- input$test_git
         # User has not uploaded a file yet
-        if (is.null(infile) & infile2==""){
+    
+        if (is.null(infile) & infile2=="" & infile3==""){
           return(NULL)
         }
-        
+
         if (!is.null(infile)) {
-          
+
           if (grepl(".csv|.txt", infile$datapath) == TRUE) {
-            
-            return(fread(infile$datapath, integer64 = "numeric",data.table = F)) # datapath es lo que devuelve input$file
-            
+
+            return(fread(
+              infile$datapath,
+              integer64 = "numeric",
+              data.table = F,
+              na.strings =  c("", " ", "NA", "N/A", "n/a", "unknown", "Unknown", "missing", "Missing", "na", "null", "NULL", "Na", "nA", "?")
+            ))
+
           } else if (grepl(".xlsx|.xls", infile$datapath) == TRUE) {
-            
-            return(read_excel(infile$datapath))
-            
+
+            return(read_excel(
+              infile$datapath,
+              na = c("", " ", "NA", "N/A", "n/a", "unknown", "Unknown", "missing", "Missing", "na", "null", "NULL", "Na", "nA", "?")
+            ))
+
           } else {
-            
+
             show_alert(
               title = "The file must be csv/txt/xlsx/xls",
               type = "warning"
             )
-            
+
             return(NULL)
-            
+
           }
-          
+
         }
-        
+
         if (infile2 != "") {
-          
+
           if (!is.null(infile)) {
-            
+
             show_alert(
               title = "Reload: Other data is loaded.",
               type = "warning"
             )
-            
+
           } else if (grepl("spreadsheet", infile2) == TRUE) {
-            
+
             gs4_auth(cache = FALSE)
-            return(read_sheet(infile2,na = c("", " ", "NA", "na", "null", "NULL", "Na")))
-            
+            return(read_sheet(
+              infile2,
+              na = c("", " ", "NA", "N/A", "n/a", "unknown", "Unknown", "missing", "Missing", "na", "null", "NULL", "Na", "nA", "?")
+            ))
+
           } else {
-            
+
             show_alert(
               title = "Must be a spreadsheet",
               type = "warning"
             )
-            
+
             return(NULL)
-            
+
           }
-          
+
         }
-        
+
+        if (infile3 != "") {
+
+          if (grepl(".csv|.txt", infile3) == TRUE) {
+
+            return(fread(
+              infile3,
+              integer64 = "numeric",
+              data.table = F,
+              na.strings = c("", " ", "NA", "N/A", "n/a", "unknown", "Unknown", "missing", "Missing", "na", "null", "NULL", "Na", "nA", "?")
+            ))
+
+          } else if (grepl(".xlsx|.xls", infile3) == TRUE) {
+
+            return(read_excel(
+              infile3,
+              na = c("", " ", "NA", "N/A", "n/a", "unknown", "Unknown", "missing", "Missing", "na", "null", "NULL", "Na", "nA", "?")
+            ))
+
+          } else {
+
+            show_alert(
+              title = "The file must be csv/txt/xlsx/xls",
+              type = "warning"
+            )
+
+            return(NULL)
+
+          }
+
+        }
+
     })
-    
-    # TARGET + SELECTING OPTIMAL TARGETS
+
+    # tttarget + SELECTING OPTIMAL tttargetS
     observe({
+        
         df <- filedata()
         z <- filedata_sql()
+        
         if (!is.null(z)) {
           df <- z
         }
         if (is.null(df)){
             return(NULL)
         }
-        
+
+        nzv <- nearZeroVar(df,freqCut = 95/5, uniqueCut = 5)
+
+        if (length(nzv)>0) {
+          df <- df[,-nzv]
+        }
+
         unique_char <- sapply(Filter(is.character, df),function(x){ # Not advisable to plot high cardinality variables
-            length(unique(x))>=10
+            length(unique(x))>5
         })
         char_exclude <- names(which(unique_char==TRUE))
-        id <- grepl("id|ID|Id|iD",names(df)) # It does not make sense to add ID as target
+        id <- grepl("id|ID|Id|iD",names(df)) # It does not make sense to add ID as tttarget
         if (sum(id) > 0) {
             char_exclude <- c(char_exclude, names(df)[id])
         }
-        
-        char_exclude <- c(char_exclude, names(df)[sapply(df, function(x){sum(is.na(x))})>0]) # Variables with NA cannot be targets
-        
-            
+
+        char_exclude <- c(char_exclude, names(df)[sapply(df, function(x){sum(is.na(x))})>0]) # Variables with NA cannot be tttargets
+
         var = select(df,-all_of(char_exclude)) %>% names()
-        updateSelectInput(session,"target", choices =  var) ### 3. INPUT: target ###
+        updateSelectInput(session,"tttarget", choices =  var) ### 3. INPUT: tttarget ###
     })
-    
+
     # OBSERVE MODEL FOR PREDICTION
     observe({
       
+
       df <- filedata()
+
       z <- filedata_sql()
+
       if (!is.null(z)) {
         df <- z
       }
       if (is.null(df)){
         return(NULL)
       }
-      
-      updateSelectInput(session,"select_model", choices =  input$pick_model) 
-      updateProgressBar(session, id="p1", value = 100, title = "Loaded", status = "success")
-      updateProgressBar(session, id="p2", value = 100, title = "Loaded", status = "success")
-      updateProgressBar(session, id="p3", value = 100, title = "Loaded", status = "success")
-      updateProgressBar(session, id="p4", value = 100, title = "Loaded", status = "success")
-      
+
+      updateSelectInput(session,"select_model", choices =  input$pick_model)
+      updateProgressBar(session, id="p1", value = 100, title = "Train Loaded", status = "success")
+      updateProgressBar(session, id="p2", value = 100, title = "Train Loaded", status = "success")
+      updateProgressBar(session, id="p3", value = 100, title = "Train Loaded", status = "success")
+      updateProgressBar(session, id="p4", value = 100, title = "Train Loaded", status = "success")
+
     })
-    
+
+    observe({
+      
+
+      df <- filetest()
+
+      # z <- filedata_sql_test()
+
+      # if (!is.null(z)) {
+      #   df <- z
+      # }
+
+      if (is.null(df)){
+        return(NULL)
+      }
+
+      updateProgressBar(session, id="t1", value = 100, title = "Test Loaded", status = "success")
+      updateProgressBar(session, id="t2", value = 100, title = "Test Loaded", status = "success")
+      updateProgressBar(session, id="t3", value = 100, title = "Test Loaded", status = "success")
+      updateProgressBar(session, id="t4", value = 100, title = "Test Loaded", status = "success")
+
+    })
+
     vtreat <- eventReactive(input$vtreat,{
-        
+
         df <- filedata()
         z <- filedata_sql()
         if (!is.null(z)) {
@@ -1019,99 +1177,108 @@ server <- function(input, output, session) {
         if (is.null(df)) {
             return(NULL)
         }
-        
+
         test <- filetest()
         
-        
-        df <- lapply(df,function(x){
-            
-            ifelse(x %in% c("","NA","N/A","Unknown","unknown","missing", "Missing", "?", "na", " ", "n/a"), NA, x)
-            
-        }) 
-        
-        df <- df %>% as.data.frame()
-        
-        test <- lapply(test,function(x){
-
-          ifelse(x %in% c("","NA","N/A","Unknown","unknown","missing", "Missing", "?", "na", " ", "n/a"), NA, x)
-
-        }) 
-        
-        test <- test %>% as.data.frame()
-        
-        df$target <- df[,input$target]
-        df[,input$target] <- NULL
-        
-        targetLevels <- length(unique(df[,"target"]))
-        
-        # r <- recipe(target~., data = df) %>% 
-        #   step_YeoJohnson(all_numeric(),-all_outcomes()) 
+        # df$prop_missings<-apply(is.na(df),1,mean)
         # 
+        # if (is.null(test))
+        # test$prop_missings<-apply(is.na(test),1,mean)
+
+        # df <- lapply(df,function(x){
+        #
+        #     ifelse(x %in% c("","NA","N/A","Unknown","unknown","missing", "Missing", "?", "na", " ", "n/a"), NA, x)
+        #
+        # })
+        #
+        # df <- df %>% as.data.frame()
+        #
+        # test <- lapply(test,function(x){
+        #
+        #   ifelse(x %in% c("","NA","N/A","Unknown","unknown","missing", "Missing", "?", "na", " ", "n/a"), NA, x)
+        #
+        # })
+        
+        
+        #test <- test %>% as.data.frame()
+
+        df$tttarget <- df[,input$tttarget]
+        df[,input$tttarget] <- NULL
+
+        tttargetLevels <- length(unique(df[,"tttarget"]))
+        
+        print(tttargetLevels)
+
+        # r <- recipe(tttarget~., data = df) %>%
+        #   step_YeoJohnson(all_numeric(),-all_outcomes())
+        #
         # df <- r %>% prep %>% juice() %>% as.data.frame()
-        # 
+        #
         # test <- r %>% prep %>% bake(test) %>% as.data.frame()
-        
-        
-        if (targetLevels > 10) {
-            
+
+
+        if (tttargetLevels > 5) {
+
             set.seed(123)
-            inTrain <- createDataPartition(df$target, p = input$split, list = FALSE)
+            inTrain <- createDataPartition(df$tttarget, p = input$split, list = FALSE)
             training <- df[ inTrain,]
             testing <- df[-inTrain,]
-            
+
             if (input$missranger == TRUE) {
-              
-              l <- missVtreatRanger(training,testing,test,"target")
+
+              l <- missVtreatRanger(training,testing,test,"tttarget")
               training <- l[[1]]
               testing <- l[[2]]
               test <- l[[3]]
-              
+
             }
-            
-            list <- names(select(training,-target)) # training
+
+            list <- names(select(training,-tttarget)) # training
             set.seed(123)
             treatments <- vtreat::mkCrossFrameNExperiment(
                 training,
                 varlist = list,
-                outcomename = "target",
-                collarProb = .03, doCollar = input$outliers
-            ) %>% withProgress()
+                outcomename = "tttarget",
+                collarProb = .03, doCollar = input$outliers,
+                parallelCluster = parallelCluster
+            ) 
             df_treat <- treatments$crossFrame
-            df_treat_fs <- select(df_treat,-target)[,treatments$treatments$scoreFrame$recommended]
-            df_treat_fs$Target <- df_treat[,"target"]
-            
-        } else if (targetLevels <= 10) {
-            
-            df$target <- df$target %>% factor()
+            df_treat_fs <- select(df_treat,-tttarget)[,treatments$treatments$scoreFrame$recommended]
+            df_treat_fs$tttarget <- df_treat[,"tttarget"]
+
+        } else if (tttargetLevels <= 5) {
+
+            df$tttarget <- df$tttarget %>% factor()
             set.seed(123)
-            inTrain <- createDataPartition(df$target, p = input$split, list = FALSE)
+            inTrain <- createDataPartition(df$tttarget, p = input$split, list = FALSE)
             training <- df[ inTrain,]
             testing <- df[-inTrain,]
-            
+
             if (input$missranger == TRUE) {
-              
-              l <- missVtreatRanger(training, testing, test,"target")
+
+              l <- missVtreatRanger(training, testing, test,"tttarget")
               training <- l[[1]]
               testing <- l[[2]]
               test <- l[[3]]
-              
+
             }
-            
-            list <- names(select(df,-target)) 
+
+            list <- names(select(df,-tttarget))
             set.seed(123)
             treatments <- vtreat::mkCrossFrameCExperiment(
                 training,
                 varlist = list,
-                outcomename = "target",
-                outcometarget = df[,"target"][[2]],
-                collarProb = .03, doCollar = input$outliers
-            )%>% withProgress()
+                outcomename = "tttarget",
+                outcometarget = df[,"tttarget"][[2]],
+                collarProb = .03, doCollar = input$outliers,
+                parallelCluster = parallelCluster
+            )
             df_treat <- treatments$crossFrame
-            df_treat_fs <- select(df_treat,-target)[,treatments$treatments$scoreFrame$recommended]
-            df_treat_fs$Target <- df_treat[,"target"]
-            
+            df_treat_fs <- select(df_treat,-tttarget)[,treatments$treatments$scoreFrame$recommended]
+            df_treat_fs$tttarget <- df_treat[,"tttarget"]
+
         }
-        
+
         testing_treat <- vtreat::prepare(treatments$treatments, testing, doCollar = input$outliers)
         
         return(list(
@@ -1119,15 +1286,15 @@ server <- function(input, output, session) {
             test = test,
             df_treat_fs = df_treat_fs,
             testing_treat = testing_treat,
-            targetLevels = targetLevels,
+            tttargetLevels = tttargetLevels,
             training = training,
             testing = testing
         ))
-        
+
     })
-    
+
     observe_upload_preprocess <- observe({                           ### Warning if data it's not upload ###
-        
+
         df <- filedata()
         z <- filedata_sql()
         if (!is.null(z)) {
@@ -1142,11 +1309,12 @@ server <- function(input, output, session) {
                 )
             )
         }
-        
+
     })
     
+
     activate_Preprocess <- observeEvent(input$vtreat,{                                      ### Activate preprocess ###
-        
+
         df <- filedata()
         z <- filedata_sql()
         if (!is.null(z)) {
@@ -1155,13 +1323,13 @@ server <- function(input, output, session) {
         if (is.null(df)) {
             return(NULL)
         }
-        
+
         if (!is.null(df)) {
-            
+
             showModal(modalDialog("Preprocessing" ,fade = TRUE, size = "l", footer = "5 - 60 sec"))
             vtreat()$treatments
             vtreat()$df_treat_fs
-            vtreat()$targetLevels
+            vtreat()$tttargetLevels
             vtreat()$testing_treat
             removeModal()
             show_alert(
@@ -1171,17 +1339,42 @@ server <- function(input, output, session) {
             )
         }
     })
-  
+    
+    # observe({
+    #   
+    #   df <- filedata()
+    #   if (input$tttarget!="Upload Data First") {
+    #     
+    #     try(
+    #       if(class(length(unique(df[,input$tttarget]))) != "numeric") {
+    #         stop("New Data")
+    #       } else { 
+    #         tt <- length(unique(df[,input$tttarget])) 
+    #         if (tt > 2 & tt <= 5) {
+    #           updatePickerInput(session,"pick_model", choices =  c("XGB", "RandomForest", "SVM", "KNN"), selected = c("RandomForest", "XGB"))
+    #         }
+    #       }
+    #     )
+    #     
+    #     # if (tt > 2 & tt <= 5) {
+    #     #   updatePickerInput(session,"pick_model", choices =  c("XGB", "RandomForest", "SVM", "KNN"), selected = c("RandomForest", "XGB"))
+    #     # }
+    #   } else {
+    #     return(NULL)
+    #   }
+    #   
+    # })
+
     validation <- eventReactive(input$process_train,{
 
         df_treat_fs <- vtreat()$df_treat_fs
-        targetLevels <- vtreat()$targetLevels
+        tttargetLevels <- vtreat()$tttargetLevels
         df <- filedata()
         z <- filedata_sql()
         if (!is.null(z)) {
           df <- z
         }
-        
+
         if (is.null(df_treat_fs)|is.null(df)) {
           show_alert(
             title = "Preprocess data first!",
@@ -1189,12 +1382,13 @@ server <- function(input, output, session) {
           )
           stop()
         }
-        
+        showModal(modalDialog("Fitting Models" ,fade = TRUE, size = "l", footer = NULL))
+
         set.seed(123)
         trControl <- trainControl(
             method = "cv",
             savePredictions = "final",
-            index = createFolds(df_treat_fs$Target, k =input$cv),
+            index = createFolds(df_treat_fs$tttarget, k =input$cv),
             allowParallel = TRUE,
             verboseIter = FALSE
         ) %>% withProgress()
@@ -1223,7 +1417,7 @@ server <- function(input, output, session) {
             alpha = 0,
             lambda = 0
         )
-        if (targetLevels<=10) {
+        if (tttargetLevels<=5) {
             rfGrid <- expand.grid(
                 mtry = round(sqrt(ncol(df_treat_fs))),
                 splitrule = "gini",
@@ -1245,66 +1439,66 @@ server <- function(input, output, session) {
 
         l <- list(
           XGB    = caretModelSpec(method = "xgbTree", tuneGrid = xgbTreeGrid, preProcess = c("YeoJohnson")),
-          Lasso = caretModelSpec(method = "glmnet", tuneGrid = lassoGrid),
+          Lasso = caretModelSpec(method = "glmnet", tuneGrid = lassoGrid, preProcess = c("YeoJohnson")),
           Ridge = caretModelSpec(method = "glmnet", tuneGrid = ridgeGrid, preProcess = c("YeoJohnson")),
-          ElasticNet = caretModelSpec(method = "glmnet", tuneGrid = elasticNetGrid),
-          LinearModel = caretModelSpec(method = "glmnet", tuneGrid = linearGrid),
-          RandomForest = caretModelSpec(method = "ranger", tuneGrid = rfGrid),
-          Tree = caretModelSpec(method = "rpart"),
-          SVM = caretModelSpec(method = "svmRadial", tune_grid = svmGrid, preProcess = c("center","scale")),
+          ElasticNet = caretModelSpec(method = "glmnet", tuneGrid = elasticNetGrid, preProcess = c("YeoJohnson")),
+          LinearModel = caretModelSpec(method = "glmnet", tuneGrid = linearGrid, preProcess = c("YeoJohnson")),
+          RandomForest = caretModelSpec(method = "ranger", tuneGrid = rfGrid, num.trees=150, preProcess = c("YeoJohnson")),
+          #Tree = caretModelSpec(method = "rpart", preProcess = c("YeoJohnson")),
+          SVM = caretModelSpec(method = "svmRadial", tune_grid = svmGrid, preProcess = c("YeoJohnson","center","scale")),
           KNN   = caretModelSpec(method = "knn", tuneGrid = knnGrid,  preProcess = c("center","scale"))
-        )%>% withProgress()
-        
+        )
+
 
         l_m <- list(
-          XGB    = caretModelSpec(method = "xgbTree", tuneGrid = xgbTreeGrid),
-          RandomForest     = caretModelSpec(method = "ranger", tuneGrid = rfGrid, num.trees=150),
-          Tree = caretModelSpec(method = "rpart"),
-          SVM = caretModelSpec(method = "svmRadial", tune_grid = svmGrid, preProcess = c("center","scale"))
-        )%>% withProgress()
+          XGB    = caretModelSpec(method = "xgbTree", tuneGrid = xgbTreeGrid, preProcess = c("YeoJohnson")),
+          RandomForest     = caretModelSpec(method = "ranger", tuneGrid = rfGrid, num.trees=150, preProcess = c("YeoJohnson")),
+          #Tree = caretModelSpec(method = "rpart"),
+          SVM = caretModelSpec(method = "svmRadial", tune_grid = svmGrid, preProcess = c("YeoJohnson","center","scale"))
+        )
 
-      
-        if (targetLevels == 2 | targetLevels > 10) {
-            
+
+        if (tttargetLevels == 2 | tttargetLevels > 5) {
+
             if (length(input$pick_model) >= 2) {
-              
+
               m <- sapply(l %>% names, function(x){
                 x == input$pick_model
               })
-              
+
               r <- which(apply(m, 2,sum) == 0) %>% names
-              
+
               l[r] <- NULL
-            
+
             } else {
-              
+
               show_alert(
                 title = "Warning",
                 text = "Needed at least 2 models. Using XGB, SVM, Tree & RF",
                 type = "warning"
               )
-              
+
               l <- l_m
             }
-            
+
             set.seed(123)
             withProgress(modelList <- caretList(
-                Target ~ ., data = df_treat_fs,
+                tttarget ~ ., data = df_treat_fs,
                 trControl = trControl,
                 tuneList = l
             ))
-        
+
         }
-        
+
         else {
-          
+
             if (length(input$pick_model) >= 2) {
               m <- sapply(l_m %>% names, function(x){
                 x == input$pick_model
               })
-              
+
               r <- which(apply(m, 2,sum) == 0) %>% names
-              
+
               l_m[r] <- NULL
             } else {
               show_alert(
@@ -1313,35 +1507,35 @@ server <- function(input, output, session) {
                 type = "warning"
               )
             }
-            
+
             set.seed(123)
             modelList <- caretList(
-                Target ~ ., data = df_treat_fs,
+                tttarget ~ ., data = df_treat_fs,
                 trControl = trControl,
                 tuneList = l_m
             )
         }
-        
+
         show_alert(
             title = "Success",
             text = "All in order",
             type = "success"
         )
-   
+        removeModal()
         return(list(
             modelList = modelList,
             trControl = trControl
         ))
 
     })
-    
-    
+
+
                                 #########################################################################################################################################################
                                 ######################################################################## OUTPUTS ########################################################################
                                 #########################################################################################################################################################
-    
+
     output$rows <- renderValueBox({
-        
+
         df <- filedata()
         z <- filedata_sql()
         if (!is.null(z)) {
@@ -1353,11 +1547,11 @@ server <- function(input, output, session) {
             ,icon = icon("server")
             ,color = "blue"
         )
-        
+
     })
-    
+
     output$columns <- renderValueBox({
-        
+
         df <- filedata()
         z <- filedata_sql()
         if (!is.null(z)) {
@@ -1369,11 +1563,11 @@ server <- function(input, output, session) {
             ,icon = icon("columns")
             ,color = "green"
         )
-        
+
     })
-    
+
     output$missing <- renderValueBox({
-        
+
         df <- filedata()
         z <- filedata_sql()
         if (!is.null(z)) {
@@ -1385,11 +1579,11 @@ server <- function(input, output, session) {
             ,icon = icon("times-circle")
             ,color = "red"
         )
-        
+
     })
-    
+
     output$numeric <- renderValueBox({
-        
+
         df <- filedata()
         z <- filedata_sql()
         if (!is.null(z)) {
@@ -1401,27 +1595,27 @@ server <- function(input, output, session) {
             ,icon = icon("calculator")
             ,color = "orange"
         )
-        
+
     })
-    
+
     output$character <- renderValueBox({
-        
+
         df <- filedata()
         z <- filedata_sql()
         if (!is.null(z)) {
           df <- z
         }
         valueBox(
-            value = if (is.null(df)) {h4("Nº Char")} else {ncol(Filter(is.character,df))} 
+            value = if (is.null(df)) {h4("Nº Char")} else {ncol(Filter(is.character,df))}
             ,subtitle = "Character"
             ,icon = icon("at")
             ,color = "teal"
         )
-        
+
     })
-    
+
     output$dates <- renderValueBox({
-        
+
         df <- filedata()
         z <- filedata_sql()
         if (!is.null(z)) {
@@ -1433,11 +1627,11 @@ server <- function(input, output, session) {
             ,icon = icon("calendar")
             ,color = "fuchsia"
         )
-        
+
     })
-    
+
     output$input_file <- renderTable({                                                          ### 2. INPUT: variable_class ###
-        
+
         df <- filedata()
         z <- filedata_sql()
         if (!is.null(z)) {
@@ -1447,19 +1641,66 @@ server <- function(input, output, session) {
             df <- iris
             df$Species <- as.character(df$Species)
         }
-        
+
         if (input$variable_class=="Numeric")
-            skim(Filter(is.numeric, df))[,c(-3,-8,-10,-12)] 
+            skim(Filter(is.numeric, df))[,c(-3,-8,-5,-12)]
         else if (input$variable_class=="Character")
             skim(Filter(is.character, df))[,c(-4)]
         else {
             skim(Filter(is.Date, df))
         }
-        
+
     })
     
+    output$table_test <- renderUI({
+      boxPlus(
+        title = ""
+        ,status = "warning"
+        ,solidHeader = F
+        ,width = 12
+        ,closable = F
+        ,enable_label = T
+        ,label_text = "Change Test's Variable Class"
+        ,label_status = "success"
+        ,enable_dropdown = TRUE
+        ,dropdown_menu = dropdownItemList(
+          radioButtons(
+            inputId = "variable_class_test"                             ### 2. INPUT: variable_class ###
+            ,label = "Select Class"
+            ,choices = c("Numeric", "Character", "Dates")
+          )
+        )
+        ,column(
+          width = 12
+          ,align = "center"
+          ,tableOutput("input_file_test") ### OUTPUT ###
+        )
+      )
+    })
+    
+    output$input_file_test <- renderTable({                                                          ### 2. INPUT: variable_class ###
+      
+      df <- filetest()
+      # z <- filedata_sql()
+      # if (!is.null(z)) {
+      #   df <- z
+      # }
+      if (is.null(df)) {
+        return(NULL)
+      }
+      
+      if (input$variable_class_test=="Numeric")
+        skim(Filter(is.numeric, df))[,c(-3,-8,-5,-12)]
+      else if (input$variable_class_test=="Character")
+        skim(Filter(is.character, df))[,c(-4)]
+      else {
+        skim(Filter(is.Date, df))
+      }
+      
+    })
+
     output$input_file_html <- renderDataTable({                                                     ### 3. OUTPUT: input_file_html ###
-        
+
         df <- filedata()
         z <- filedata_sql()
         if (!is.null(z)) {
@@ -1468,21 +1709,51 @@ server <- function(input, output, session) {
         if (is.null(df)) {
             df <- iris
         }
-        
+
         head(df,25)
-    
+
     })
+
+    # output$report <- downloadHandler(
+    #   dd <- filedata(), 
+    #   function(theFile){                            ### 4. Output: report ###
+    # 
+    #     showModal(modalDialog("Creating Report" ,fade = TRUE, size = "l", footer = "1-3 mins"))
+    #     create_report(dd, report_title = "EDA")
+    #     removeModal()
+    # 
+    # })
     
-    output$report <- downloadHandler(dd <- filedata(), function(theFile){                            ### 4. Output: report ###
+    output$report <- downloadHandler(
+      
+      
+      filename = "report.html",
+      
+      content= function(file) {
+        dd <- filedata()        
         
         showModal(modalDialog("Creating Report" ,fade = TRUE, size = "l", footer = "1-3 mins"))
-        create_report(dd)
+        tempReport <- file.path(tempdir(), "report.html")
+        create_report(dd) 
+        file.copy("report.html", tempReport, overwrite = TRUE)
+        
+        render(
+          tempReport,
+          output_file = file,
+          params = 1,
+          envir = new.env(parent = globalenv())
+        )
+        
         removeModal()
-        
-    })
     
-    output$na <- renderPlot({                                                                         ### 5. Output: na ###
-        
+
+   
+      }
+
+    )
+
+    output$na <- renderPlotly({                                                                         ### 5. Output: na ###
+
         df <- filedata()
         z <- filedata_sql()
         if (!is.null(z)) {
@@ -1491,56 +1762,71 @@ server <- function(input, output, session) {
         if (is.null(df)) {
             return(readRDS("rds/na.RDS"))
         }
+
+        na <- sum(is.na(df))
         
-        na <- lapply(df,function(x){
-            
-            ifelse(x %in% c("","NA","N/A","Unknown","unknown","missing", "Missing", "?", "na", " "), NA, x)
-            
-        })
-        
-        na <- na %>% as.data.frame()
-        
-        plot_missing(
-            na, 
-            ggtheme = theme_plex, 
+        if (na > 0) {
+          
+          plot_missing(
+            df,
+            ggtheme = theme_plex,
             missing_only = TRUE
-        )
-        
-    }) 
-    
-    output$target_plotly <- renderPlotly({                                                      ### 6. target_plotly
-        
+          ) %>% ggplotly()
+          
+        } else {
+          
+          return(readRDS("rds/no_na.RDS"))
+          
+        }
+
+    })
+
+    output$tttarget_plotly <- renderPlotly({                                                      ### 6. tttarget_plotly
+
         df <- filedata()
         z <- filedata_sql()
         if (!is.null(z)) {
           df <- z
         }
-        if (is.null(df)) { 
+        if (is.null(df)) {
             return(readRDS("rds/target_plotly.RDS"))
         }
-        
-        if (nrow(unique(select(df,input$target)))<=10) {
-            
-            a <- df %>% 
-                select(input$target) %>% 
-                set_names("Target") %>% 
-                ggplot(., aes(Target, fill=factor(Target))) + geom_bar() + labs(title = input$target) + guides(fill=F)
+
+        if (nrow(unique(select(df,input$tttarget)))<=5) {
+
+            a <- df %>%
+                select(input$tttarget) %>%
+                set_names("tttarget") %>%
+                ggplot(., aes(tttarget, fill=factor(tttarget))) + geom_bar() + labs(title = input$tttarget, x=NULL) + guides(fill=F)
             ggplotly(a)
-                
+
         } else {
-            
-            a <- df %>% 
-                select(input$target) %>% 
-                set_names("Target") %>% 
-                ggplot(., aes(Target)) + geom_histogram(fill=sample(colors,size=1), alpha=.8) + labs(title = input$target)
+
+            a <- df %>%
+                select(input$tttarget) %>%
+                set_names("tttarget") %>%
+                ggplot(., aes(tttarget)) + geom_histogram(fill=sample(colors,size=1), alpha=.8) + labs(title = input$tttarget, x=NULL)
             ggplotly(a)
-            
+
         }
-        
+
     })
     
+    n_n <- function(){
+      
+      df <- filedata()
+      z <- filedata_sql()
+      
+      if (!is.null(df)) {
+        return(sum(sapply(df, is.numeric))*100)
+      } else {
+        return(6*100)
+      }
+      
+    }
+
     output$histograms <- renderPlot({                                                                ### 7. OUTPUT: histograms ###
-        
+
         df <- filedata()
         z <- filedata_sql()
         if (!is.null(z)) {
@@ -1550,17 +1836,27 @@ server <- function(input, output, session) {
             return(readRDS("rds/hist.RDS"))
         }
         
-        plot_histogram(
-            df, 
+        if (sum(sapply(df, is.numeric)) == 0) {
+          
+          return(readRDS("/rds/not_num.RDS"))
+          
+        } else {
+          
+          plot_histogram(
+            df,
             geom_histogram_args = list("fill" = sample(colors,size=1), "alpha"=0.8),
             ggtheme = theme_plex,
-            nrow = ncol(Filter(is.numeric, df))
-        ) 
-        
-    })
+            nrow = ncol(Filter(is.numeric, df)),parallel = T
+          )
+          
+          
+        }
+
+    },height=n_n)
     
+
     output$boxplots <- renderPlot({                                                                ### 8. OUTPUT: boxplots ###
-        
+
         df <- filedata()
         z <- filedata_sql()
         if (!is.null(z)) {
@@ -1569,40 +1865,45 @@ server <- function(input, output, session) {
         if (is.null(df)) {
             return(readRDS("rds/boxplot.RDS"))
         }
-            
-        plot_boxplot(
-            df, 
-            geom_boxplot_args = list("fill" = sample(colors,size=1), "alpha"=0.8),
-            ggtheme = theme_plex,
-            by = input$target,
-            nrow = ncol(Filter(is.numeric, df))
-            
-        ) 
         
-    })
-    
-    # output$scatterplots <- renderPlot({                                                                ### 9. OUTPUT: Scatterplots ###
-    #     
-    #     df <- filedata()
-    #     if (is.null(df)) {
-    #         return(NULL)
-    #     }
-    #     
-    #     plot_scatterplot(
-    #         df, 
-    #         geom_point_args = list("color" = sample(colors,size=1), "alpha"=0.8),
-    #         # sampled_rows = 10000,
-    #         #ggtheme = theme_plex,
-    #         title = "Bivariate Scatterplot",
-    #         by = input$target,
-    #         nrow = ncol(Filter(is.numeric, df))
-    #         
-    #     ) 
-    #     
-    # })
-    
-    output$bars <- renderPlot({                                                                ### 10. OUTPUT: bars ###
-        
+        if (sum(sapply(df, is.numeric)) == 0) {
+          
+          
+          return(readRDS("/rds/not_num_gg.RDS"))
+          
+        } else {
+          
+          
+          
+          plot_boxplot(
+              df,
+              geom_boxplot_args = list("fill" = sample(colors,size=1), "alpha"=0.8),
+              ggtheme = theme_plex,
+              by = input$tttarget,
+              nrow = ncol(Filter(is.numeric, df)),
+              parallel = T
+          )
+       
+          
+        }
+
+    },height = n_n)
+
+    n_cat <- function(){
+      
+      df <- filedata()
+      z <- filedata_sql()
+      
+      if (!is.null(df)) {
+        return(sum(sapply(df, is.character))*100)
+      } else {
+        return(6*100)
+      }
+      
+    }
+
+    output$bars <- renderPlot({                                                                ### 5. OUTPUT: bars ###
+
         df <- filedata()
         z <- filedata_sql()
         if (!is.null(z)) {
@@ -1611,29 +1912,39 @@ server <- function(input, output, session) {
         if (is.null(df)) {
             return(readRDS("rds/barplot.RDS"))
         }
-        
+
         unique_vars <- sapply(df,function(x){
-            
+
             length(unique(x))
-            
+
         })
-        
+
         cardinality <- which(unique_vars <= 15)
         
-        plot_bar(
-            data = df,
-            binary_as_factor = TRUE,
-            maxcat = 15,
-            ggtheme = theme_plex,
-            nrow = ncol(df[,cardinality])
-        )
+        if (sum(sapply(df, is.character)) == 0) {
+          
+          return(readRDS("rds/not_cat_gg.RDS"))
+          
+        } else {
+          
+
+          plot_bar(
+              data = df,
+              binary_as_factor = TRUE,
+              maxcat = 15,
+              ggtheme = theme_plex,
+              nrow = ncol(df[,cardinality]), parallel = T
+          )
+          
+          
         
+        }
         
-    })
-    
-    
+    },height=n_n)
+
+
     output$bars_bi <- renderPlot({                                                                 ### 11. OUTPUT: bars_bi ###
-        
+
         df <- filedata()
         z <- filedata_sql()
         if (!is.null(z)) {
@@ -1643,51 +1954,63 @@ server <- function(input, output, session) {
             return(readRDS("rds/barplot_bi.RDS"))
         }
         
-        if (nrow(unique(select(df,input$target)))<=15) {
-            
-            unique_vars <- sapply(df,function(x){
-                
-                length(unique(x))
-                
-            })
-            
-            cardinality <- which(unique_vars <= 15)
-            
-            df %>% 
-                mutate(Target = factor(df[,input$target])) %>% 
-                plot_bar_all(
-                    data = .,
-                    group = "Target",
-                    binary_as_factor = T,
-                    maxcat = 15,
-                    ggtheme = theme_plex,
-                    nrow = ncol(df[,cardinality]),
-                    ncol = 3
-                )
-            
+        if (sum(sapply(df, is.character)) == 0) {
+          
+          return(readRDS("rds/not_cat_gg.RDS"))
+          
+        } else if (nrow(unique(select(df,input$tttarget)))<=15) {
+  
+          unique_vars <- sapply(df,function(x){
+              length(unique(x))
+          })
+          cardinality <- which(unique_vars <= 15)
+          df %>%
+              mutate(tttarget = factor(df[,input$tttarget])) %>%
+              plot_bar_all(
+                  data = .,
+                  group = "tttarget",
+                  binary_as_factor = T,
+                  maxcat = 15,
+                  ggtheme = theme_plex,
+                  nrow = ncol(df[,cardinality]),
+                  ncol = 3
+              )
+          
+  
         } else {
-            ggplot(df) + labs(title="Target must be Categorical")
+          return(readRDS("rds/not_bi_num.RDS"))
         }
-    })
-    
+          
+    },height = n_cat)
+
     output$cardinality <- renderPlot({                                                        ### 12. OUTPUT: cardinality ###
-        
+
         df <- filedata()
         z <- filedata_sql()
         if (!is.null(z)) {
           df <- z
         }
+        
+        
         if (is.null(df)) {
             return(readRDS("rds/cardinality.RDS"))
         }
         
-        x <- inspect_cat(df)
-        show_plot(x)
+        if (sum(sapply(df, is.character)) == 0) {
+          
+          return(readRDS("rds/not_cat_gg.RDS.RDS"))
+          
+        } else {
+          
+          x <- inspect_cat(df)
+          show_plot(x)
         
-    })
-    
+        } 
+
+    },height = n_cat)
+
     output$corr <- renderPlot({                                                                 ### 13. OUTPUT: corr ###
-        
+
         df <- filedata()
         z <- filedata_sql()
         if (!is.null(z)) {
@@ -1697,28 +2020,38 @@ server <- function(input, output, session) {
             return(readRDS("rds/corr.RDS"))
         }
         
-        numeric <- ncol(df) 
-        
-        if (numeric > 40) {
-          plot_correlation(
-            na.omit(df[,sample(1:ncol(df),size = 40)]),
-            maxcat = 10,
-            ggtheme = theme_plex
-          ) 
+        if (sum(sapply(df, is.numeric)) == 0) {
+          
+          return(readRDS("/rds/not_num_gg.RDS")) 
+          
         } else {
-          plot_correlation(
-            na.omit(df),
-            maxcat = 10,
-            ggtheme = theme_plex
-          ) 
+
+          # nzv <- nearZeroVar(df,freqCut = 90/10, uniqueCut = 10)
+          # 
+          # if (length(nzv)>0) {
+          #   df <- df[,-nzv]
+          # }
+
+          numeric <- ncol(df)
+          
+          if (numeric > 20) {
+            plot_correlation(
+              na.omit(df[,sample(1:ncol(df),size = 20)]),
+              maxcat = 5,
+              ggtheme = theme_plex
+            )
+          } else {
+            plot_correlation(
+              na.omit(df),
+              maxcat = 5,
+              ggtheme = theme_plex
+            )
+          } 
         }
-      
-        
-        
     })
-    
-    output$value_target <- renderUI({
-        
+
+    output$value_tttarget <- renderUI({
+
         df <- filedata()
         z <- filedata_sql()
         if (!is.null(z)) {
@@ -1727,81 +2060,105 @@ server <- function(input, output, session) {
         if (is.null(df)) {
             return(NULL)
         }
-        
+
         a <- ""
         
-        if (length(unique(df[,input$target]))<=5) {
-            
-            a <- "Classification"
-            
-        } else {a <- "Regression"}
+        l <- length(unique(df[,input$tttarget]))
+
+        if (l<=5) {
+
+          a <- "Classification"
         
-        info_card(
-            title="Target Problem"
-            ,value = a
-            ,sub_value = NULL
-            ,sub_icon = NULL
-            ,bg_color  = ifelse(a=="Classification", "info", "warning")
-            ,sub_text_color = NULL
-            ,main_icon = "ruler"
+        } else {
+          a <- "Regression"
+        }
+
+        valueBox(
+          value = a
+          ,icon = icon("ruler")
+          ,color = ifelse(a=="Classification", "green", "aqua")
+          ,subtitle = "Target Problem"
+          ,width = 12
+
         )
-        
+
     })
 
-    
+
     output$cv_model_results <- renderPlotly({                                                                 ### 18. OUTPUT: cv_model_results ###
+      
         
+        df <- filedata()
+        
+        
+        if (is.null(df) | input$process_train ==0) {
           
+          return(readRDS("rds/preprocess.RDS")) 
+          
+        }
         modelList <- validation()$modelList
-        
+
         first_model <- names(modelList)[1]
         last_model <- names(modelList)[length(modelList)]
-        
-        a <- modelList %>% 
-            resamples() %>% 
-            data.frame() %>% 
-            pivot_longer(first_model:last_model) %>% 
-            ggplot(., aes(reorder(name,value), value)) + 
-            geom_boxplot(color="dodgerblue") + 
-            coord_flip() + 
-            labs(title = "CV Results", y=modelList$XGB$metric, x=NULL) 
-        
-        ggplotly(a)
-        
-    })
-    
-    output$test_models_results <- renderPlotly({                                                                 ### 19. OUTPUT: test_models_results ###
 
+        a <- modelList %>%
+            resamples() %>%
+            data.frame() %>%
+            pivot_longer(first_model:last_model) %>%
+            ggplot(., aes(reorder(name,value), value)) +
+            geom_boxplot(color="dodgerblue") +
+            coord_flip() +
+            labs(title = "CV Results", y=modelList$XGB$metric, x=NULL)
+
+        ggplotly(a)
+
+    })
+
+    output$test_models_results <- renderPlotly({                                                                 ### 19. OUTPUT: test_models_results ###
+        df <- filedata()
+        
+        
+        if (is.null(df) | input$process_train ==0) {
+          
+          return(readRDS("rds/preprocess.RDS")) 
+          
+        }
         modelList2 <- validation()$modelList
         testing_treat <- vtreat()$testing_treat
         treatments <- vtreat()$treatments
         
         modelList <- modelList2
         
+        if (is.null(modelList)) {
+          
+          return(readRDS("rds/preprocess.RDS")) 
+          
+        }
+
         first_model <- names(modelList)[1]
         last_model <- names(modelList)[length(modelList)]
 
-        targetLevels <- length(unique(testing_treat[,"target"]))
-        
-        min <- length(input$pick_model) + 1
+        tttargetLevels <- length(unique(testing_treat[,"tttarget"]))
+
+        min <- length(modelList) + 1
         max <- min * 2
 
-        if (targetLevels == 2) {
+        if (tttargetLevels == 2) {
 
             metric_results <- sapply(modelList, function(x){
                 y_pred <- predict(x,testing_treat)
-                results <- postResample(y_pred, testing_treat$target %>% factor)
+                results <- postResample(y_pred, testing_treat$tttarget %>% factor)
             }) %>% data.frame() %>%
                 pivot_longer(first_model:last_model) %>%
                 mutate(Metric="Accuracy")
-           
+
             metric_results[min:max,]$Metric <- "Kappa"
 
-        } else if (targetLevels > 10) {
+        } else if (tttargetLevels > 5) {
 
             metric_results <- sapply(modelList, function(x){
                 y_pred <- predict(x,testing_treat)
-                results <- postResample(y_pred, testing_treat$target)
+                results <- postResample(y_pred, testing_treat$tttarget)
             }) %>% data.frame() %>%
                 pivot_longer(first_model:last_model) %>%
                 mutate(Metric="RMSE")
@@ -1812,7 +2169,7 @@ server <- function(input, output, session) {
 
             metric_results <- sapply(modelList, function(x){
                 y_pred <- predict(x,testing_treat)
-                results <- postResample(y_pred, testing_treat$target %>% factor)
+                results <- postResample(y_pred, testing_treat$tttarget %>% factor)
             }) %>% data.frame() %>%
                 pivot_longer(first_model:last_model) %>%
                 mutate(Metric="Accuracy")
@@ -1830,32 +2187,31 @@ server <- function(input, output, session) {
         ggplotly(b)
 
     })
-    
-    show_pred <- observe({
+
+    show_pred <- observeEvent(input$predict,{
 
       test <- filetest()
-      
 
-      if (input$predict>0 & is.null(test)) {
+
+      if (is.null(test)) {
         show_alert(
           title = "Upload Test First!",
           type = "warning"
         )
         return(stop)
 
-      } else if (input$predict>0 & input$process_train >0) {
+      } else if (input$process_train >0) {
         showModal(modalDialog("Computing predictions." ,fade = TRUE, size = "l", footer = NULL))
         pred()$pred
-        Sys.sleep(2)
         removeModal()
       }
 
     })
-    
+
     pred <- eventReactive(input$predict,{
-    
+
         # t t
-        treatments <- vtreat()$treatments
+        treatments1 <- vtreat()$treatments
         test <- vtreat()$test
         df <- filedata()
         z <- filedata_sql()
@@ -1867,20 +2223,20 @@ server <- function(input, output, session) {
         ll <- validation()$ll
         training <- vtreat()$training
         testing <- vtreat()$testing
-        targetLevels <- vtreat()$targetLevels
-        
-    
-        
-        if (is.null(treatments) | is.null(test)) {
+        tttargetLevels <- vtreat()$tttargetLevels
+
+
+
+        if (is.null(treatments1) | is.null(test)) {
           return(NULL)
-        
+
           }
-        
+        #showModal(modalDialog("Computing predictions." ,fade = TRUE, size = "l", footer = NULL))
         # if (input$predict > 0) {
         #     showModal(modalDialog("Predicting" ,fade = TRUE, size = "l", footer = "Less than 15 sec"))
         #     removeModal()
         # }
-        # 
+        #
         train_total <- rbind(
           training,
           testing
@@ -1890,49 +2246,50 @@ server <- function(input, output, session) {
           method = "cv",
           savePredictions = "final",
           search = "random",
-          index = createFolds(train_total$target, k =3),
+          index = createFolds(train_total$tttarget, k =3),
           allowParallel = TRUE,
           verboseIter = FALSE
         )
-        
+
         # trControl <- trainControl(
         #   method = "cv",
         #   savePredictions = "final",
         #   search = "random",
-        #   index = createFolds(df_treat_fs$Target, k =3),
+        #   index = createFolds(df_treat_fs$tttarget, k =3),
         #   allowParallel = TRUE,
         #   verboseIter = FALSE
         # )
-        
-        
-        if (targetLevels > 10) {
 
-          list <- names(select(train_total,-target)) # training
+
+        if (tttargetLevels > 5) {
+
+          list <- names(select(train_total,-tttarget)) # training
           set.seed(123)
           treatments <- vtreat::mkCrossFrameNExperiment(
             train_total,
             varlist = list,
-            outcomename = "target",
-            collarProb = .03, doCollar = input$outliers
+            outcomename = "tttarget",
+            collarProb = .03, doCollar = input$outliers,
+            parallelCluster = parallelCluster
           )
           df_treat <- treatments$crossFrame
-          df_treat_fs <- select(df_treat,-target)[,treatments$treatments$scoreFrame$recommended]
-          df_treat_fs$Target <- df_treat[,"target"]
+          df_treat_fs <- select(df_treat,-tttarget)[,treatments$treatments$scoreFrame$recommended]
+          df_treat_fs$tttarget <- df_treat[,"tttarget"]
 
-        } else if (targetLevels <= 10) {
+        } else if (tttargetLevels <= 5) {
 
-          list <- names(select(train_total,-target))
+          list <- names(select(train_total,-tttarget))
           set.seed(123)
           treatments <- vtreat::mkCrossFrameCExperiment(
             train_total,
             varlist = list,
-            outcomename = "target",
-            outcometarget = train_total[,"target"][[2]],
+            outcomename = "tttarget",
+            outcometarget = train_total[,"tttarget"][[2]],
             collarProb = .03, doCollar = input$outliers
           )
           df_treat <- treatments$crossFrame
-          df_treat_fs <- select(df_treat,-target)[,treatments$treatments$scoreFrame$recommended]
-          df_treat_fs$Target <- df_treat[,"target"]
+          df_treat_fs <- select(df_treat,-tttarget)[,treatments$treatments$scoreFrame$recommended]
+          df_treat_fs$tttarget <- df_treat[,"tttarget"]
 
         }
 
@@ -1946,84 +2303,114 @@ server <- function(input, output, session) {
             lambda = 0
           )),
           RandomForest = caretModelSpec(method = "ranger"),
-          Tree = caretModelSpec(method = "rpart"),
+          #Tree = caretModelSpec(method = "rpart"),
           SVM = caretModelSpec(method = "svmRadial"),
           KNN   = caretModelSpec(method = "knn",  preProcess = c("center","scale"))
         )
-        
+
         m <- sapply(ll %>% names, function(x){
           x != input$select_model
         })
-        
+
         ll[m] <- NULL
-        
+
         test_treated <- vtreat::prepare(treatments$treatments, test, doCollar = input$outliers)
-        
+
         i=1
         
+      
+
         # place where model predictions are stored
         solution.table <- data.frame(id = 1:nrow(test_treated))
-        
-     
-         
-        set.seed(123)
-        modelList <- caretList(
-          Target ~ ., data = df_treat_fs,
-          trControl = trControl,
-          tuneList = ll,
-          tuneLength = 30
-        )
- 
-        for (i in 1:9){
-          
-          set.seed(i)
-          model <- train(
-            Target ~ ., 
-            data = df_treat_fs,
-            trControl = trainControl(method="none"),
-            tuneGrid = modelList[[1]]$bestTune,
-            method = modelList[[1]]$method
-          )
-   
-          solution.table[,i] <- predict(model, test_treated)
 
+        if (input$tune_lenght == TRUE) {
+
+          set.seed(123)
+          modelList <- caretList(
+            tttarget ~ ., data = df_treat_fs,
+            trControl = trControl,
+            tuneList = ll,
+            tuneLength = 30
+          )
           
-        }
-        
+          if (modelList[[1]]$method %in% c("ranger", "xgbTree")) {
+  
+            for (i in 1:9){
+    
+              set.seed(i)
+              model <- train(
+                tttarget ~ .,
+                data = df_treat_fs,
+                trControl = trainControl(method="none"),
+                tuneGrid = modelList[[1]]$bestTune,
+                method = modelList[[1]]$method
+              )
+    
+              solution.table[,i] <- predict(model, test_treated)
+              
+    
+            }
     
     
-        if (targetLevels > 10) {
-          
-          solution.table$mean <- rowMeans(solution.table[,-1])
-          
-          pred <- solution.table$mean
+    
+            if (tttargetLevels > 5) {
+    
+              solution.table$mean <- rowMeans(solution.table[,-1])
+    
+              pred <- solution.table$mean
+    
+            } else {
+    
+              solution.table.count<-apply(solution.table, MARGIN=1, table)
+    
+              # Create vector where my solution will be stored
+              predict.combined<-vector()
+    
+              # Identify category with more frequency (votes) per row.
+              for (x in 1:nrow(test_treated)) {
+                predict.combined[x]<-names(which.max(solution.table.count[[x]]))
+              }
+    
+              pred <- predict.combined
+    
+            } 
+            
+          } else {
+              
+              set.seed(i)
+              model <- train(
+                tttarget ~ .,
+                data = df_treat_fs,
+                trControl = trainControl(method="none"),
+                tuneGrid = modelList[[1]]$bestTune,
+                method = modelList[[1]]$method
+              )
+              
+              pred <- predict(model, test_treated)
+              
+          }
           
         } else {
           
-          solution.table.count<-apply(solution.table, MARGIN=1, table)
+          set.seed(i)
+          model <- train(
+            tttarget ~ .,
+            data = df_treat_fs,
+            trControl = trainControl(method="none"),
+            method = modelList[[1]]$method
+          )
           
-          # Create vector where my solution will be stored
-          predict.combined<-vector()
-          
-          
-          # Identify category with more frequency (votes) per row.
-          for (x in 1:nrow(test_treated)) {
-            predict.combined[x]<-names(which.max(solution.table.count[[x]]))
-          }
-          
-          pred <- predict.combined
+          pred <- predict(model, test_treated)
           
         }
-            
-            # pred <- predict(modelList[input$select_model], test_treated)
-          
-            
+
+        #removeModal()
         return(list(pred=pred))
-            
+
     })
+
     
-    
-    
+
     output$download_predict <- downloadHandler(
         filename = function() {
             paste("prediction", "csv", sep=".")
@@ -2033,140 +2420,137 @@ server <- function(input, output, session) {
         }
     )
     
-    output$ranger_importance <- renderPlotly({
-      
-      df <- filedata()
-      z <- filedata_sql()
-      if (!is.null(z)) {
-        df <- z
-      }
-      if(is.null(df)) {
-        return(NULL)
-      }
-      
-      df[, "Target"] <- df[,input$target]
-      df[,input$target] <- NULL
-      
-      importance_measure <- "impurity"
-      
-      split_rule <- "gini"
-      
-      if (length(unique(df$Target))>10) {
-        importance_measure <- "permutation"
-        split_rule <- "variance"
-      }
-      
-      names(df) <- make.names(names(df))
-      
-      
-      isna <- sapply(df, function(x, df) {
-        sum(is.na(x))/nrow(df)
-      },df)
-      
-      l_na <- which(isna>.3) %>% length()
-      
-      if (l_na>0) {
+    ### Para hacer solo un ranger ### +50% speed
+    
+    
+    rf_var_imp <- eventReactive(input$tabs,{
+      if (input$tabs=="fi") {
+        df <- filedata()
+        z <- filedata_sql()
+        if (!is.null(z)) {
+          df <- z
+        }
+        if(is.null(df)) {
+          return(NULL)
+        }
         
-        remove <- which(isna>.3) %>% names()
+        nzv <- nearZeroVar(df,freqCut = 95/5, uniqueCut = 5)
         
-        df <- select(df, -all_of(remove))
+        if (length(nzv)>0) {
+          df <- df[,-nzv]
+        }
         
+        df[, "tttarget"] <- df[,input$tttarget]
+        df[,input$tttarget] <- NULL
+        
+        df <- recipe(tttarget~., data = df) %>% 
+          step_integer(all_nominal()) %>%
+          recipes::prep() %>% 
+          juice()
+        
+        importance_measure <- "impurity"
+        
+        split_rule <- "gini"
+        
+        if (length(unique(df$tttarget))>5) {
+          importance_measure <- "permutation"
+          split_rule <- "variance"
+        }
+        
+        names(df) <- make.names(names(df))
+        
+        
+        isna <- sapply(df, function(x, df) {
+          sum(is.na(x))/nrow(df)
+        },df)
+        
+        l_na <- which(isna>.3) %>% length()
+        
+        if (l_na>0) {
+          
+          remove <- which(isna>.3) %>% names()
+          
+          df <- select(df, -all_of(remove))
+          
+        }
+        
+        rf_var <- ranger(
+          tttarget~.
+          ,data = na.omit(df)
+          ,num.trees = 50
+          ,importance = importance_measure
+        )
+
       }
-      
-      rf_var_imp <- ranger(
-        Target~.
-        ,data = na.omit(df)
-        ,num.trees = 50
-        ,importance = importance_measure
+      return(list(
+        rf = rf_var,
+        df = df)
       )
       
-      imp <- as.data.frame(ranger::importance(rf_var_imp))
+    })
+
+    output$ranger_importance <- renderPlotly({
+      
+      rf_var_imp2 <- rf_var_imp()$rf
+      
+      if (is.null(rf_var_imp2)) {
+
+        return(readRDS("rds/rfi.RDS"))
+
+      }
+      
+   
+      imp <- as.data.frame(ranger::importance(rf_var_imp2))
       imp$Variable <- rownames(imp)
       names(imp)[1] <- c("Importance")
       rownames(imp) <- NULL
-      
-      g <- ggplot(imp, aes(reorder(Variable, Importance), Importance, fill=Importance)) + 
-        geom_col() + 
+
+      g <- ggplot(imp, aes(reorder(Variable, Importance), Importance, fill=Importance)) +
+        geom_col() +
         coord_flip() +
         labs(x=NULL)
-      
+
       ggplotly(g)
-      
+
     })
-    
+
     output$ranger_outliers <- renderPlot({
+
+      rf_var_imp2 <- rf_var_imp()$rf
+      df <- rf_var_imp()$df
       
-      df <- filedata()
-      z <- filedata_sql()
-      if (!is.null(z)) {
-        df <- z
-      }
-      if(is.null(df)) {
-        return(NULL)
-      }
       
-      df[, "Target"] <- df[,input$target]
-      df[,input$target] <- NULL
-      
-      importance_measure <- "impurity"
-      
-      split_rule <- "gini"
-      
-      if (length(unique(df$Target))>10) {
-        importance_measure <- "permutation"
-        split_rule <- "variance"
+      if(is.null(rf_var_imp2)) {
+        return(readRDS("rds/outliers_gg.RDS"))
       }
       
-      names(df) <- make.names(names(df))
       
-      
-      isna <- sapply(df, function(x, df) {
-        sum(is.na(x))/nrow(df)
-      },df)
-      
-      l_na <- which(isna>.2) %>% length()
-      
-      if (l_na>0) {
-        
-        remove <- which(isna>.2) %>% names()
-        
-        df <- select(df, -all_of(remove))
-        
-      }
-      
-      rf_var_imp <- ranger(
-        Target~.
-        ,data = na.omit(df)
-        ,num.trees = 50
-        ,importance = importance_measure
-      )
-      
-      tmp1 <-  na.omit(df) %>% 
+      tmp1 <-  na.omit(df) %>%
         mutate(
-          Predicted = predict(rf_var_imp, na.omit(df))[[1]],
-          Residual = Target - Predicted,
-          out = abs(Residual) > quantile(abs(Residual), .9975),
-          Id = 1:nrow(na.omit(df))  
-        ) %>% 
-        select(Id, Target, Predicted, Residual, out)
-  
+          Predicted = predict(rf_var_imp2, na.omit(df))[[1]],
+          Residual = tttarget - Predicted,
+          out = abs(Residual) > quantile(abs(Residual), .9975,na.rm = T),
+          Id = 1:nrow(na.omit(df))
+        ) %>%
+        select(Id, tttarget, Predicted, Residual, out)
+
       p1 <- ggplot(tmp1, aes(x = Predicted, y = Residual, col = out, label = Id)) +
-        geom_point(size = 2, alpha = .7, show.legend = FALSE) + 
+        geom_point(size = 2, alpha = .7, show.legend = FALSE) +
         # geom_rug(sides = "r", outside = TRUE) +
         # coord_cartesian(clip = "off") +
         scale_color_viridis_d(end = .7, direction = -1) +
         ggrepel::geom_label_repel(
-          data = filter(tmp1, out == 1), show.legend = FALSE) 
-      
+          data = filter(tmp1, out == 1), show.legend = FALSE)
+
       p2 <- ggplot(tmp1, aes(x = Residual)) +
         geom_histogram() +
-        theme_void() + 
+        theme_void() +
         coord_flip()
-      
-      
+
+
       p1 + p2 + plot_layout(nrow = 1, widths = c(3, 1))
-      
-  
+
+
     })
 
     
