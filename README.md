@@ -1,3 +1,3 @@
 # TFM
 
-![](/img/nutTFM.png)
+![](/img/nutTFM.jpeg)
