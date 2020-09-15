@@ -8,5 +8,5 @@ developed.](http://www.repostatus.org/badges/0.1.0/active.svg)](http://www.repos
 
 ![](/img/nutTFM.jpeg)
 
-![](/img/kaggle.png)
+![](/img/kagglepng.png)
 
