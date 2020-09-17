@@ -1,3 +1,7 @@
+[![Project Status: usable - The project has reached a stable, usable
+state and is being actively
+developed.](http://www.repostatus.org/badges/0.1.0/active.svg)](http://www.repostatus.org/#active)
+
 # TFM
 
 Al estar alojado en la versión gratuita de shinyapps.io no se debería procesar datos de más de 20k filas x 40 columnas.
@@ -16,9 +20,7 @@ Con el dataset de House Prices (1461 x 81):
     * Comparación de todos los modelos: 45 segundos. | Comparación base de Random Forest + Elastic Net: 10 segundos.
     
 
-[![Project Status: usable - The project has reached a stable, usable
-state and is being actively
-developed.](http://www.repostatus.org/badges/0.1.0/active.svg)](http://www.repostatus.org/#active)
+
 
 
 
