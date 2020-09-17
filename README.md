@@ -1,5 +1,9 @@
 # TFM
 
+Al estar alojado en la versión gratuita de shinyapps.io no se debería procesar datos de más de 20k filas x 40 columnas.
+Es recomendable usar train y test de competiciones de Kaggle, por ejemplo, House Prices o Titanic.
+La imputación por Random Forest es experimental.
+
 [![Project Status: usable - The project has reached a stable, usable
 state and is being actively
 developed.](http://www.repostatus.org/badges/0.1.0/active.svg)](http://www.repostatus.org/#active)
