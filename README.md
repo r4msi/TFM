@@ -7,6 +7,8 @@ developed.](http://www.repostatus.org/badges/0.1.0/active.svg)](http://www.repos
 Al estar alojado en la versión gratuita de shinyapps.io no se debería procesar datos de más de 20k filas x 40 columnas.
 Es recomendable usar train y test de competiciones de Kaggle, por ejemplo, House Prices o Titanic.
 
+  * Google sheets solo funciona en local de momento.
+
 
 # Tiempos
 
