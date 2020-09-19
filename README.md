@@ -21,8 +21,8 @@ Con el dataset de House Prices (1461 x 81):
   * Preprocesado básico: Yeojohnson, nuevas variables + Vtreat: 7.3 segundos.
   * Preporcesado con imputación Random Forest: 1 minuto 40 segundos. (Hay que tener en cuenta que hay 20 variables con NA).
   * Comparación de todos los modelos: 45 segundos. | Comparación base de Random Forest + Elastic Net: 10 segundos.
-  * Tunear el XGB ~ 5 minutos y 10 segundos (Se entrenan 7 hiperparámetros). | Elastic Net 30 segundos (2) | Rando Forest: 2 minutos 4 hyperparámetors ...
-  * Queda la implementación en paralelo que no se puede hacer en la versión gratuita de shiny.
+  * Tunear el XGB ~ 5 minutos y 10 segundos (Se entrenan 7 hiperparámetros). | Elastic Net 30 segundos (2) | Rando Forest: 2 minutos 4 hiperparámetors ...
+  * Por implementar: Cálculo en paralelo (funciona en local).
     
 
 
